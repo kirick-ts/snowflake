@@ -1,0 +1,28 @@
+{
+	"name": "@kirick/snowflake",
+	"version": "0.1.0-beta.1",
+	"description": "Easy-to-use generator of unique & sortable IDs.",
+	"publishConfig": {
+		"access": "public",
+		"tag": "beta"
+	},
+	"main": "main.js",
+	"engines": {
+		"node": ">=10.4.0"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/kirick13/snowflake-js.git"
+	},
+	"keywords": [
+		"snowflake",
+		"uuid",
+		"uid"
+	],
+	"author": "Daniil Kirichenko (https://twitter.com/kirickme)",
+	"license": "MIT",
+	"bugs": {
+		"url": "https://github.com/kirick13/snowflake-js/issues"
+	},
+	"homepage": "https://github.com/kirick13/snowflake-js#readme"
+}
