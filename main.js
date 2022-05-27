@@ -1,9 +1,10 @@
 
 /* eslint-disable no-bitwise */
 
+const base62 = require('base-x')('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz');
+
 const EPOCH = 1640995200_000; // Jan 1, 2022
 const NUMBER_TS_RIGHT = 2 ** 10; // 10 bits to the right number, 32 bits will remain on the left side
-const ALPHABET_64 = '0123456789=ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz';
 
 class SnowflakeGenerator {
 	constructor ({
@@ -91,8 +92,8 @@ class SnowflakeGenerator {
 				return String(buffer.readBigUInt64BE(0));
 			case 'hex':
 				return buffer.toString('hex');
-			case '64':
-				return SnowflakeGenerator.encode64(buffer);
+			case '62':
+				return base62.encode(buffer);
 			default:
 				throw new Error(`Unknown encoding: ${encoding}`);
 		}
@@ -131,10 +132,15 @@ class SnowflakeGenerator {
 					);
 				} break;
 				case 'hex': {
-					buffer = Buffer.from(snowflake, 'hex');
+					buffer = Buffer.from(
+						snowflake,
+						'hex',
+					);
 				} break;
-				case '64': {
-					buffer = SnowflakeGenerator.decode64(snowflake);
+				case '62': {
+					buffer = Buffer.from(
+						base62.decode(snowflake),
+					);
 				} break;
 				// no default
 			}
@@ -143,8 +149,6 @@ class SnowflakeGenerator {
 		if (!buffer) {
 			throw new Error(`Unknown encoding: ${encoding}`);
 		}
-
-		// console.log('buffer', buffer);
 
 		const number_right = buffer.readInt32BE(4);
 
@@ -156,44 +160,7 @@ class SnowflakeGenerator {
 		};
 	}
 
-	static encode64 (buffer) {
-		return ALPHABET_64[buffer[0] >>> 2]
-		     + ALPHABET_64[(((buffer[0] & 0b11) << 4) | (buffer[1] >>> 4)) >>> 0]
-		     + ALPHABET_64[(((buffer[1] & 0b1111) << 2) | (buffer[2] >>> 6)) >>> 0]
-		     + ALPHABET_64[(buffer[2] & 0b111111) >>> 0]
-		     + ALPHABET_64[buffer[3] >>> 2]
-		     + ALPHABET_64[(((buffer[3] & 0b11) << 4) | (buffer[4] >>> 4)) >>> 0]
-		     + ALPHABET_64[(((buffer[4] & 0b1111) << 2) | (buffer[5] >>> 6)) >>> 0]
-		     + ALPHABET_64[(buffer[5] & 0b111111) >>> 0]
-		     + ALPHABET_64[buffer[6] >>> 2]
-		     + ALPHABET_64[(((buffer[6] & 0b11) << 4) | (buffer[7] >>> 4)) >>> 0]
-		     + ALPHABET_64[((buffer[7] & 0b1111) << 2) >>> 0];
-	}
-
-	static decode64 (string) {
-		const buffer = Buffer.allocUnsafe(8);
-
-		for (let i = 0; i <= 10; i += 4) {
-			const bytes6 = [
-				ALPHABET_64.indexOf(string[i]),
-				ALPHABET_64.indexOf(string[i + 1]),
-				ALPHABET_64.indexOf(string[i + 2]),
-				(i < 8) ? ALPHABET_64.indexOf(string[i + 3]) : 0,
-			];
-
-			const buffer_offset = i / 4 * 3;
-
-			buffer[buffer_offset] = (bytes6[0] << 2) | (bytes6[1] >>> 4);
-			buffer[buffer_offset + 1] = ((bytes6[1] & 0b1111) << 4) | (bytes6[2] >>> 2);
-			if (i < 8) {
-				buffer[buffer_offset + 2] = ((bytes6[2] & 0b11) << 6) | bytes6[3];
-			}
-		}
-
-		return buffer;
-	}
-
-	static analyzeBits (number) {
+	static _analyzeBits (number) {
 		number >>>= 0;
 
 		const number_string = number.toString(2);

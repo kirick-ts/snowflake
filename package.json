@@ -1,6 +1,6 @@
 {
 	"name": "@kirick/snowflake",
-	"version": "0.1.0-beta.1",
+	"version": "0.1.0-beta.2",
 	"description": "Easy-to-use generator of unique & sortable IDs.",
 	"publishConfig": {
 		"access": "public",
@@ -9,6 +9,9 @@
 	"main": "main.js",
 	"engines": {
 		"node": ">=10.4.0"
+	},
+	"dependencies": {
+		"base-x": "4.0.0"
 	},
 	"repository": {
 		"type": "git",

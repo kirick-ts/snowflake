@@ -1,4 +1,6 @@
 
+/* eslint-disable no-bitwise */
+
 const SnowflakeGenerator = require('../main');
 
 (async () => {
@@ -7,10 +9,10 @@ const SnowflakeGenerator = require('../main');
 		worker_id: 0,
 	});
 
-	for (const encoding of [ 'decimal', 'hex', '64' ]) {
+	for (const encoding of [ 'decimal', 'hex', '62' ]) {
 		console.log('encoding', encoding, snowflakeGenerator.create(encoding));
 
-		for (let i = 0; i < 10_000_000; i++) {
+		for (let i = 0; i < 1_000_000; i++) {
 			if (i % 100_000 === 0) {
 				console.log(encoding, i / 1000, 'k');
 			}
@@ -27,7 +29,7 @@ const SnowflakeGenerator = require('../main');
 				snowflake2 = snowflakeGenerator.create(encoding);
 				// console.log('snowflake 2', snowflake2);
 			}
-			catch (_) {
+			catch {
 				await new Promise(resolve => {
 					setTimeout(resolve, 1);
 				});
@@ -42,7 +44,7 @@ const SnowflakeGenerator = require('../main');
 							name,
 							(value >>> 0),
 							(value >>> 0).toString(2),
-							SnowflakeGenerator.analyzeBits(value),
+							SnowflakeGenerator._analyzeBits(value),
 						);
 					}
 				}

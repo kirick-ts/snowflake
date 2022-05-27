@@ -13,16 +13,14 @@ const SnowflakeGenerator = require('../main');
 		worker_id: WORKER_ID,
 	});
 
-	for (const encoding of [ null, 'bigint', 'decimal', 'hex', '64' ]) {
+	for (const encoding of [ null, 'bigint', 'decimal', 'hex', '62' ]) {
 		// for (let i = 0; i < 10_000; i++) {
 		// 	if (i % 100_000 === 0) {
 		// 		console.log(encoding, i / 1000, 'k');
 		// 	}
-
-
 		// }
 
-		console.log('---------');
+		console.log('---------', encoding ?? 'buffer', '---------');
 
 		const snowflake = await snowflakeGenerator.createStrict(encoding);
 		console.log('snowflake', snowflake);
