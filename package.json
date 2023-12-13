@@ -1,6 +1,6 @@
 {
 	"name": "@kirick/snowflake",
-	"version": "0.2.0-beta.1",
+	"version": "0.2.0-beta.3",
 	"description": "Easy-to-use generator of unique & sortable IDs.",
 	"publishConfig": {
 		"access": "public"
@@ -36,7 +36,7 @@
 		"test": "npm run test-node && bun test",
 		"test-node": "NODE_OPTIONS=--experimental-vm-modules jest",
 		"build": "bun run build-cjs && bun run build-browser-minified",
-		"build-cjs": "bunx esbuild --bundle --format=cjs --platform=node --outfile=dist/snowflake.cjs src/main.js",
+		"build-cjs": "bunx esbuild --bundle --platform=node --format=cjs --packages=external --outfile=dist/snowflake.cjs src/main.js",
 		"build-browser-minified": "bun build --target browser --format esm --minify --outfile dist/browser/esm/snowflake.js src/main.js",
 		"npm-publish": "bun run build && npm test && npm publish --tag beta"
 	},
