@@ -2,6 +2,8 @@
 /* global describe, test, expect */
 
 import { SnowflakeFactory } from './factory.js';
+import { Snowflake }        from './snowflake.js';
+import { asyncTimeout }     from './utils/async-timeout.js';
 
 const SERVER_ID = Math.trunc(Math.random() * 16);
 const WORKER_ID = Math.trunc(Math.random() * 16);
@@ -11,125 +13,130 @@ const snowflakeFactory = new SnowflakeFactory({
 	worker_id: WORKER_ID,
 });
 
-function checkParsed(state, ts) {
-	expect(state.timestamp).toBeGreaterThanOrEqual(ts);
-	expect(state.timestamp).toBeLessThanOrEqual(ts + 1);
-	expect(state.server_id).toBe(SERVER_ID);
-	expect(state.worker_id).toBe(WORKER_ID);
+function testSnowflake(snowflake, timestamp) {
+	expect(snowflake).toBeInstanceOf(Snowflake);
+	expect(snowflake.timestamp).toBeGreaterThanOrEqual(timestamp);
+	expect(snowflake.timestamp).toBeLessThanOrEqual(timestamp + 1);
+	expect(typeof snowflake.increment).toBe('number');
+	expect(snowflake.increment).toBeGreaterThanOrEqual(0);
+	expect(snowflake.server_id).toBe(SERVER_ID);
+	expect(snowflake.worker_id).toBe(WORKER_ID);
 }
 
 describe('types', () => {
+	const timestamp = Date.now();
+	const snowflake = snowflakeFactory.create();
+
+	test('Snowflake', () => {
+		testSnowflake(snowflake, timestamp);
+	});
+
 	test('ArrayBuffer', () => {
-		const ts = Date.now();
+		const { array_buffer } = snowflake;
 
-		const snowflake = snowflakeFactory.create();
+		expect(array_buffer).toBeInstanceOf(ArrayBuffer);
+		expect(array_buffer.byteLength).toBe(8);
 
-		expect(snowflake).toBeInstanceOf(ArrayBuffer);
-		expect(snowflake.byteLength).toBe(8);
-
-		checkParsed(
-			snowflakeFactory.parse(snowflake),
-			ts,
+		testSnowflake(
+			snowflakeFactory.parse(array_buffer),
+			timestamp,
 		);
 	});
 
 	test('Buffer', () => {
-		const ts = Date.now();
+		const { buffer } = snowflake;
 
-		const snowflake = snowflakeFactory.create('buffer');
+		expect(buffer).toBeInstanceOf(Buffer);
+		expect(buffer.byteLength).toBe(8);
 
-		expect(snowflake).toBeInstanceOf(Buffer);
-		expect(snowflake.byteLength).toBe(8);
-
-		checkParsed(
-			snowflakeFactory.parse(snowflake),
-			ts,
+		testSnowflake(
+			snowflakeFactory.parse(buffer),
+			timestamp,
 		);
 	});
 
 	test('bigint', () => {
-		const ts = Date.now();
+		expect(typeof snowflake.bigint).toBe('bigint');
+		expect(snowflake.bigint).toBeGreaterThan(0n);
+		expect(snowflake.bigint).toBeLessThan(2n ** 64n);
 
-		const snowflake = snowflakeFactory.create('bigint');
-
-		expect(typeof snowflake).toBe('bigint');
-		expect(snowflake).toBeGreaterThan(0n);
-		expect(snowflake).toBeLessThan(2n ** 64n);
-
-		checkParsed(
+		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake,
+				snowflake.bigint,
 				'bigint',
 			),
-			ts,
+			timestamp,
 		);
 	});
 
 	test('decimal', () => {
-		const ts = Date.now();
+		expect(typeof snowflake.decimal).toBe('string');
+		expect(snowflake.decimal).toMatch(/^\d+$/);
 
-		const snowflake = snowflakeFactory.create('decimal');
-
-		expect(typeof snowflake).toBe('string');
-		expect(snowflake).toMatch(/^\d+$/);
-
-		checkParsed(
+		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake,
+				snowflake.decimal,
 				'decimal',
 			),
-			ts,
+			timestamp,
 		);
 	});
 
 	test('hex', () => {
-		const ts = Date.now();
+		expect(typeof snowflake.hex).toBe('string');
+		expect(snowflake.hex).toMatch(/^[\da-f]+$/);
+		expect(snowflake.hex.length).toBe(16);
 
-		const snowflake = snowflakeFactory.create('hex');
-
-		expect(typeof snowflake).toBe('string');
-		expect(snowflake).toMatch(/^[\da-f]+$/);
-		expect(snowflake.length).toBe(16);
-
-		checkParsed(
+		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake,
+				snowflake.hex,
 				'hex',
 			),
-			ts,
+			timestamp,
 		);
 	});
 
-	test('62', () => {
-		const ts = Date.now();
+	test('base62', () => {
+		expect(typeof snowflake.base62).toBe('string');
+		expect(snowflake.base62).toMatch(/^[\dA-Za-z]+$/);
+		expect(snowflake.base62.length).toBe(10);
 
-		const snowflake = snowflakeFactory.create('62');
-
-		expect(typeof snowflake).toBe('string');
-		expect(snowflake).toMatch(/^[\dA-Za-z]+$/);
-		expect(snowflake.length).toBe(10);
-
-		checkParsed(
+		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake,
-				'62',
+				snowflake.base62,
+				'base62',
 			),
-			ts,
+			timestamp,
 		);
 	});
 });
 
-describe('compare', () => {
-	for (const encoding of [ 'bigint', 'decimal', 'hex', '62' ]) {
-		test(encoding, async () => {
-			for (const _ of Array.from({ length: 100_000 })) { // eslint-disable-line no-unused-vars
-				// eslint-disable-next-line no-await-in-loop
-				const snowflake1 = await snowflakeFactory.createSafe('bigint');
-				// eslint-disable-next-line no-await-in-loop
-				const snowflake2 = await snowflakeFactory.createSafe('bigint');
+const snowflakes = [
+	snowflakeFactory.create(),
+	snowflakeFactory.create(),
+];
+while (snowflakes.length < 10) {
+	// eslint-disable-next-line no-await-in-loop
+	await asyncTimeout(
+		snowflakes.length,
+	);
 
-				expect(snowflake1).not.toBe(snowflake2);
-				expect(snowflake1).toBeLessThan(snowflake2);
+	snowflakes.push(
+		snowflakeFactory.create(),
+		snowflakeFactory.create(),
+	);
+}
+
+describe('compare', () => {
+	for (const encoding of [ 'bigint', 'decimal', 'hex', 'base62' ]) {
+		test(encoding, () => {
+			for (let index = 1; index < snowflakes.length; index++) {
+				const snowflake1 = snowflakes[index - 1];
+				const snowflake2 = snowflakes[index];
+
+				const is_less = snowflake1[encoding] < snowflake2[encoding];
+
+				expect(is_less).toBe(true);
 			}
 		});
 	}

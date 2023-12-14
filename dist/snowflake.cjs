@@ -69,6 +69,155 @@ function hexToArrayBuffer(hex) {
   return uint8_array.buffer;
 }
 
+// src/utils/base62.js
+var import_base_x = __toESM(require("base-x"), 1);
+var base62 = (0, import_base_x.default)("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+
+// src/snowflake.js
+var EPOCH = 16409952e5;
+var NUMBER_TS_RIGHT = 2 ** 10;
+var Snowflake = class {
+  #timestamp;
+  #increment;
+  #server_id;
+  #worker_id;
+  #array_buffer;
+  #uint8_array;
+  #bigint;
+  #hex;
+  #base62;
+  constructor(...args) {
+    switch (args.length) {
+      case 5:
+        this.#fromValues(...args);
+        break;
+      case 3:
+        this.#fromSnowflake(...args);
+        break;
+      default:
+        throw new TypeError("Invalid arguments given.");
+    }
+  }
+  // eslint-disable-next-line max-params
+  #fromValues(timestamp, increment, server_id, worker_id, {
+    increment_bit_offset,
+    number_server_id_worker_id
+  }) {
+    const timestamp_epoch = timestamp - EPOCH;
+    this.#array_buffer = new ArrayBuffer(8);
+    const data_view = new DataView(this.#array_buffer);
+    data_view.setUint32(
+      0,
+      Math.floor(timestamp_epoch / NUMBER_TS_RIGHT)
+    );
+    data_view.setUint32(
+      4,
+      timestamp_epoch % NUMBER_TS_RIGHT << 22 | increment << increment_bit_offset | number_server_id_worker_id
+    );
+    this.#timestamp = timestamp;
+    this.#increment = increment;
+    this.#server_id = server_id;
+    this.#worker_id = worker_id;
+  }
+  #fromSnowflake(snowflake, encoding, {
+    server_id_mask,
+    worker_id_bits,
+    worker_id_mask,
+    increment_bit_offset
+  }) {
+    if (snowflake instanceof ArrayBuffer) {
+      this.#array_buffer = snowflake;
+    } else if (Buffer.isBuffer(snowflake)) {
+      this.#array_buffer = snowflake.buffer.slice(
+        snowflake.offset,
+        snowflake.offset + snowflake.byteLength
+      );
+    } else if (typeof snowflake === "bigint") {
+      this.#array_buffer = new ArrayBuffer(8);
+      const data_view2 = new DataView(this.#array_buffer);
+      data_view2.setBigUint64(
+        0,
+        snowflake
+      );
+    } else if (typeof snowflake === "string") {
+      switch (encoding) {
+        case "decimal":
+          {
+            this.#array_buffer = new ArrayBuffer(8);
+            const data_view2 = new DataView(this.#array_buffer);
+            data_view2.setBigUint64(
+              0,
+              BigInt(snowflake)
+            );
+          }
+          break;
+        case "hex":
+          this.#array_buffer = hexToArrayBuffer(snowflake);
+          break;
+        case "base62":
+          this.#array_buffer = base62.decode(snowflake).buffer;
+          break;
+      }
+    }
+    if (this.#array_buffer === void 0) {
+      throw new SnowflakeError(`Unknown encoding: ${encoding}`);
+    }
+    const data_view = new DataView(this.#array_buffer);
+    const number_right = data_view.getUint32(4);
+    this.#timestamp = data_view.getUint32(0) * NUMBER_TS_RIGHT + (number_right >>> 22) + EPOCH;
+    this.#increment = number_right << 10 >>> 10 >>> increment_bit_offset;
+    this.#server_id = number_right >>> worker_id_bits & server_id_mask;
+    this.#worker_id = number_right & worker_id_mask;
+  }
+  get timestamp() {
+    return this.#timestamp;
+  }
+  get increment() {
+    return this.#increment;
+  }
+  get server_id() {
+    return this.#server_id;
+  }
+  get worker_id() {
+    return this.#worker_id;
+  }
+  get array_buffer() {
+    return this.#array_buffer;
+  }
+  get uint8_array() {
+    if (!this.#uint8_array) {
+      this.#uint8_array = new Uint8Array(this.#array_buffer);
+    }
+    return this.#uint8_array;
+  }
+  get buffer() {
+    return Buffer.from(
+      this.#array_buffer
+    );
+  }
+  get bigint() {
+    if (!this.#bigint) {
+      this.#bigint = new DataView(this.#array_buffer).getBigUint64(0);
+    }
+    return this.#bigint;
+  }
+  get decimal() {
+    return this.bigint.toString();
+  }
+  get hex() {
+    if (!this.#hex) {
+      this.#hex = arrayBufferToHex(this.#array_buffer);
+    }
+    return this.#hex;
+  }
+  get base62() {
+    if (!this.#base62) {
+      this.#base62 = base62.encode(this.uint8_array);
+    }
+    return this.#base62;
+  }
+};
+
 // src/utils/async-timeout.js
 async function asyncTimeout(delay) {
   return new Promise((resolve) => {
@@ -79,23 +228,14 @@ async function asyncTimeout(delay) {
   });
 }
 
-// src/utils/base62.js
-var import_base_x = __toESM(require("base-x"), 1);
-var base62 = (0, import_base_x.default)("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
-
 // src/factory.js
-var EPOCH = 16409952e5;
-var NUMBER_TS_RIGHT = 2 ** 10;
 var SnowflakeFactory = class {
-  // #server_id_bits;
-  #server_id_mask;
-  #worker_id_bits;
-  #worker_id_mask;
-  #increment_bit_offset;
+  #server_id;
+  #worker_id;
   #increment = 0;
-  #increment_ts_epoch = 0;
+  #increment_timestamp = 0;
   #increment_max;
-  #number_server_id_worker_id;
+  #snowflake_options;
   constructor({
     bit_count: {
       server_id: bits_server_id = 7,
@@ -104,123 +244,64 @@ var SnowflakeFactory = class {
     server_id = 0,
     worker_id = 0
   } = {}) {
-    this.#server_id_mask = 2 ** bits_server_id - 1;
-    this.#worker_id_bits = bits_worker_id;
-    this.#worker_id_mask = 2 ** bits_worker_id - 1;
-    if (server_id < 0 || server_id > this.#server_id_mask || !Number.isInteger(server_id)) {
-      throw new SnowflakeError(`Invalid server_id: ${server_id} (possible values: from 0 to ${this.#server_id_mask} inclusive)`);
+    this.#server_id = server_id;
+    this.#worker_id = worker_id;
+    const server_id_mask = 2 ** bits_server_id - 1;
+    const worker_id_bits = bits_worker_id;
+    const worker_id_mask = 2 ** bits_worker_id - 1;
+    if (server_id < 0 || server_id > server_id_mask || !Number.isInteger(server_id)) {
+      throw new SnowflakeError(`Invalid server_id: ${server_id} (possible values: from 0 to ${server_id_mask} inclusive)`);
     }
-    if (worker_id < 0 || worker_id > this.#worker_id_mask || !Number.isInteger(worker_id)) {
-      throw new SnowflakeError(`Invalid worker_id: ${worker_id} (possible values: from 0 to ${this.#worker_id_mask} inclusive)`);
+    if (worker_id < 0 || worker_id > worker_id_mask || !Number.isInteger(worker_id)) {
+      throw new SnowflakeError(`Invalid worker_id: ${worker_id} (possible values: from 0 to ${worker_id_mask} inclusive)`);
     }
-    this.#increment_bit_offset = bits_server_id + bits_worker_id;
-    this.#increment_max = 2 ** (22 - this.#increment_bit_offset) - 1;
-    this.#number_server_id_worker_id = server_id << bits_worker_id | worker_id;
+    const increment_bit_offset = bits_server_id + bits_worker_id;
+    this.#increment_max = 2 ** (22 - increment_bit_offset) - 1;
+    this.#snowflake_options = {
+      server_id_mask,
+      worker_id_bits,
+      worker_id_mask,
+      increment_bit_offset,
+      number_server_id_worker_id: server_id << bits_worker_id | worker_id
+    };
   }
-  create(encoding) {
-    const ts_epoch = Date.now() - EPOCH;
-    if (ts_epoch < this.#increment_ts_epoch) {
-      throw new SnowflakeError(`Cannot create snowflake: Date.now() has returned (probably) invalid value ${ts_epoch}, but previously we got ${this.#increment_ts_epoch}, is code running on time machine?`);
+  create() {
+    const timestamp = Date.now();
+    if (timestamp < this.#increment_timestamp) {
+      throw new SnowflakeError(`Cannot create snowflake: Date.now() has returned (probably) invalid value ${timestamp}, but previously we got ${this.#increment_timestamp}, is code running on time machine?`);
     }
-    if (ts_epoch > this.#increment_ts_epoch) {
+    if (timestamp > this.#increment_timestamp) {
       this.#increment = 0;
-      this.#increment_ts_epoch = ts_epoch;
+      this.#increment_timestamp = timestamp;
     } else if (this.#increment > this.#increment_max) {
       throw new SnowflakeIncrementOverflowError();
     }
-    const array_buffer = new ArrayBuffer(8);
-    const data_view = new DataView(array_buffer);
-    data_view.setUint32(
-      0,
-      Math.floor(ts_epoch / NUMBER_TS_RIGHT)
+    return new Snowflake(
+      timestamp,
+      this.#increment++,
+      this.#server_id,
+      this.#worker_id,
+      this.#snowflake_options
     );
-    data_view.setUint32(
-      4,
-      ts_epoch % NUMBER_TS_RIGHT << 22 | this.#increment << this.#increment_bit_offset | this.#number_server_id_worker_id
-    );
-    this.#increment++;
-    switch (encoding) {
-      case null:
-      case void 0:
-        return array_buffer;
-      case "buffer":
-        return Buffer.from(array_buffer);
-      case "bigint":
-        return data_view.getBigUint64(0);
-      case "decimal":
-      case 10:
-        return String(
-          data_view.getBigUint64(0)
-        );
-      case "hex":
-      case 16:
-        return arrayBufferToHex(array_buffer);
-      case "62":
-      case 62:
-        return base62.encode(
-          new Uint8Array(array_buffer)
-        );
-      default:
-        throw new Error(`Unknown encoding: ${encoding}`);
-    }
   }
-  async createSafe(encoding) {
-    while (true) {
+  async createSafe() {
+    for (let try_id = 0; try_id < 100; try_id++) {
       try {
-        return this.create(encoding);
+        return this.create();
       } catch (error) {
         if (error instanceof SnowflakeIncrementOverflowError) {
           await asyncTimeout();
         }
       }
     }
+    throw new SnowflakeIncrementOverflowError();
   }
   parse(snowflake, encoding) {
-    let array_buffer;
-    if (snowflake instanceof ArrayBuffer) {
-      array_buffer = snowflake;
-    } else if (Buffer.isBuffer(snowflake)) {
-      array_buffer = snowflake.buffer;
-    } else if (typeof snowflake === "bigint") {
-      array_buffer = new ArrayBuffer(8);
-      const data_view2 = new DataView(array_buffer);
-      data_view2.setBigUint64(
-        0,
-        snowflake
-      );
-    } else if (typeof snowflake === "string") {
-      switch (encoding) {
-        case "decimal":
-        case 10:
-          {
-            array_buffer = new ArrayBuffer(8);
-            const data_view2 = new DataView(array_buffer);
-            data_view2.setBigUint64(
-              0,
-              BigInt(snowflake)
-            );
-          }
-          break;
-        case "hex":
-          array_buffer = hexToArrayBuffer(snowflake);
-          break;
-        case "62":
-        case 62:
-          array_buffer = base62.decode(snowflake).buffer;
-          break;
-      }
-    }
-    if (array_buffer === void 0) {
-      throw new SnowflakeError(`Unknown encoding: ${encoding}`);
-    }
-    const data_view = new DataView(array_buffer);
-    const number_right = data_view.getUint32(4);
-    return {
-      timestamp: data_view.getUint32(0) * NUMBER_TS_RIGHT + (number_right >>> 22) + EPOCH,
-      increment: number_right << 10 >>> 10 >>> this.#increment_bit_offset,
-      server_id: number_right >>> this.#worker_id_bits & this.#server_id_mask,
-      worker_id: number_right & this.#worker_id_mask
-    };
+    return new Snowflake(
+      snowflake,
+      encoding,
+      this.#snowflake_options
+    );
   }
 };
 // Annotate the CommonJS export names for ESM import in node:
