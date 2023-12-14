@@ -237,7 +237,7 @@ var SnowflakeFactory = class {
   #increment_max;
   #snowflake_options;
   constructor({
-    bit_count: {
+    bits: {
       server_id: bits_server_id = 7,
       worker_id: bits_worker_id = 5
     } = {},
