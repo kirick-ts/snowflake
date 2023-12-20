@@ -76,7 +76,7 @@ Each time it gets `SnowflakeIncrementOverflowError`, it waits until the next mil
 const snowflake = await snowflakeFactory.createSafe();
 ```
 
-#### `parse(value: ArrayBuffer | Buffer | BigInt | string, encoding? = "decimal", "hex", "base62"): Snowflake`
+#### `parse(value: ArrayBuffer | Buffer | BigInt | string, encoding? = "decimal" | "hex" | "base62"): Snowflake`
 
 Parses Snowflake from `ArrayBuffer`, `Buffer`, `BigInt` or `string`.
 

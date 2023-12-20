@@ -131,26 +131,56 @@ export class Snowflake {
 		this.#worker_id = number_right & worker_id_mask;
 	}
 
+	/**
+	 * Timestamp in milliseconds when Snowflake was created.
+	 * @type {number}
+	 * @readonly
+	 */
 	get timestamp() {
 		return this.#timestamp;
 	}
 
+	/**
+	 * Increment of Snowflake.
+	 * @type {number}
+	 * @readonly
+	 */
 	get increment() {
 		return this.#increment;
 	}
 
+	/**
+	 * Server ID where Snowflake was created.
+	 * @type {number}
+	 * @readonly
+	 */
 	get server_id() {
 		return this.#server_id;
 	}
 
+	/**
+	 * Worker ID where Snowflake was created.
+	 * @type {number}
+	 * @readonly
+	 */
 	get worker_id() {
 		return this.#worker_id;
 	}
 
+	/**
+	 * ArrayBuffer representation of this Snowflake.
+	 * @type {ArrayBuffer}
+	 * @readonly
+	 */
 	get array_buffer() {
 		return this.#array_buffer;
 	}
 
+	/**
+	 * Uint8Array representation of this Snowflake.
+	 * @type {Uint8Array}
+	 * @readonly
+	 */
 	get uint8_array() {
 		if (!this.#uint8_array) {
 			this.#uint8_array = new Uint8Array(this.#array_buffer);
@@ -159,12 +189,22 @@ export class Snowflake {
 		return this.#uint8_array;
 	}
 
+	/**
+	 * Node.JS Buffer representation of this Snowflake.
+	 * @type {Buffer}
+	 * @readonly
+	 */
 	get buffer() {
 		return Buffer.from(
 			this.#array_buffer,
 		);
 	}
 
+	/**
+	 * BigInt representation of this Snowflake.
+	 * @type {bigint}
+	 * @readonly
+	 */
 	get bigint() {
 		if (!this.#bigint) {
 			this.#bigint = new DataView(this.#array_buffer).getBigUint64(0);
@@ -173,10 +213,20 @@ export class Snowflake {
 		return this.#bigint;
 	}
 
+	/**
+	 * This Snowflake as decimal string.
+	 * @type {string}
+	 * @readonly
+	 */
 	get decimal() {
 		return this.bigint.toString();
 	}
 
+	/**
+	 * This Snowflake as hex string.
+	 * @type {string}
+	 * @readonly
+	 */
 	get hex() {
 		if (!this.#hex) {
 			this.#hex = arrayBufferToHex(this.#array_buffer);
@@ -185,6 +235,11 @@ export class Snowflake {
 		return this.#hex;
 	}
 
+	/**
+	 * This Snowflake as base62 string.
+	 * @type {string}
+	 * @readonly
+	 */
 	get base62() {
 		if (!this.#base62) {
 			this.#base62 = base62.encode(this.uint8_array);

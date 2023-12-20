@@ -58,6 +58,12 @@ export class SnowflakeFactory {
 		};
 	}
 
+	/**
+	 * Creates new Snowflake.
+	 * @throws {SnowflakeError}
+	 * @throws {SnowflakeIncrementOverflowError} If increment has reached maximum value. Try again in next millisecond.
+	 * @returns {Snowflake} New Snowflake instance.
+	 */
 	create() {
 		const timestamp = Date.now();
 
@@ -82,6 +88,13 @@ export class SnowflakeFactory {
 		);
 	}
 
+	/**
+	 * Asynchronously creates new Snowflake. Tries to avoid SnowflakeIncrementOverflowError by waiting for next millisecond.
+	 * @async
+	 * @throws {SnowflakeError}
+	 * @throws {SnowflakeIncrementOverflowError} If increment has reached maximum value after 100 tries. Try again in next millisecond.
+	 * @returns {Promise<Snowflake>} New Snowflake instance.
+	 */
 	async createSafe() {
 		for (let try_id = 0; try_id < 100; try_id++) {
 			try {
@@ -98,6 +111,13 @@ export class SnowflakeFactory {
 		throw new SnowflakeIncrementOverflowError();
 	}
 
+	/**
+	 * Parses Snowflake from ArrayBuffer, Buffer, bigint or string.
+	 * @param {ArrayBuffer | Buffer | bigint | string} snowflake Snowflake to parse.
+	 * @param {"decimal" | "hex" | "binary"} [encoding] Encoding of snowflake string. Required if snowflake is string.
+	 * @throws {SnowflakeError}
+	 * @returns {Snowflake} Parsed Snowflake instance.
+	 */
 	parse(snowflake, encoding) {
 		return new Snowflake(
 			snowflake,
