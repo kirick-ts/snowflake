@@ -32,7 +32,7 @@ describe('types', () => {
 	});
 
 	test('ArrayBuffer', () => {
-		const { array_buffer } = snowflake;
+		const array_buffer = snowflake.toArrayBuffer();
 
 		expect(array_buffer).toBeInstanceOf(ArrayBuffer);
 		expect(array_buffer.byteLength).toBe(8);
@@ -44,7 +44,7 @@ describe('types', () => {
 	});
 
 	test('Buffer', () => {
-		const { buffer } = snowflake;
+		const buffer = snowflake.toBuffer();
 
 		expect(buffer).toBeInstanceOf(Buffer);
 		expect(buffer.byteLength).toBe(8);
@@ -56,13 +56,15 @@ describe('types', () => {
 	});
 
 	test('bigint', () => {
-		expect(typeof snowflake.bigint).toBe('bigint');
-		expect(snowflake.bigint).toBeGreaterThan(0n);
-		expect(snowflake.bigint).toBeLessThan(2n ** 64n);
+		const result = snowflake.toBigInt();
+
+		expect(typeof result).toBe('bigint');
+		expect(result).toBeGreaterThan(0n);
+		expect(result).toBeLessThan(2n ** 64n);
 
 		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake.bigint,
+				result,
 				'bigint',
 			),
 			timestamp,
@@ -70,12 +72,14 @@ describe('types', () => {
 	});
 
 	test('decimal', () => {
-		expect(typeof snowflake.decimal).toBe('string');
-		expect(snowflake.decimal).toMatch(/^\d+$/);
+		const result = snowflake.toDecimal();
+
+		expect(typeof result).toBe('string');
+		expect(result).toMatch(/^\d+$/);
 
 		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake.decimal,
+				result,
 				'decimal',
 			),
 			timestamp,
@@ -83,13 +87,15 @@ describe('types', () => {
 	});
 
 	test('hex', () => {
-		expect(typeof snowflake.hex).toBe('string');
-		expect(snowflake.hex).toMatch(/^[\da-f]+$/);
-		expect(snowflake.hex.length).toBe(16);
+		const result = snowflake.toHex();
+
+		expect(typeof result).toBe('string');
+		expect(result).toMatch(/^[\da-f]+$/);
+		expect(result.length).toBe(16);
 
 		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake.hex,
+				result,
 				'hex',
 			),
 			timestamp,
@@ -97,13 +103,15 @@ describe('types', () => {
 	});
 
 	test('base62', () => {
-		expect(typeof snowflake.base62).toBe('string');
-		expect(snowflake.base62).toMatch(/^[\dA-Za-z]+$/);
-		expect(snowflake.base62.length).toBe(10);
+		const result = snowflake.toBase62();
+
+		expect(typeof result).toBe('string');
+		expect(result).toMatch(/^[\dA-Za-z]+$/);
+		expect(result.length).toBe(10);
 
 		testSnowflake(
 			snowflakeFactory.parse(
-				snowflake.base62,
+				result,
 				'base62',
 			),
 			timestamp,
@@ -128,13 +136,13 @@ while (snowflakes.length < 10) {
 }
 
 describe('compare', () => {
-	for (const encoding of [ 'bigint', 'decimal', 'hex', 'base62' ]) {
-		test(encoding, () => {
+	for (const method of [ 'toBigInt', 'toDecimal', 'toHex', 'toBase62' ]) {
+		test(method, () => {
 			for (let index = 1; index < snowflakes.length; index++) {
 				const snowflake1 = snowflakes[index - 1];
 				const snowflake2 = snowflakes[index];
 
-				const is_less = snowflake1[encoding] < snowflake2[encoding];
+				const is_less = snowflake1[method]() < snowflake2[method]();
 
 				expect(is_less).toBe(true);
 			}

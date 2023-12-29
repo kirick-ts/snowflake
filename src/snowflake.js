@@ -8,11 +8,44 @@ import { base62 }         from './utils/base62.js';
 const EPOCH = 1_640_995_200_000; // Jan 1, 2022
 const NUMBER_TS_RIGHT = 2 ** 10; // 10 bits to the right number, 32 bits will remain on the left side
 
+function assign(target, key, value) {
+	Object.defineProperty(
+		target,
+		key,
+		{
+			value,
+			enumerable: true,
+			writable: false,
+			configurable: false,
+		},
+	);
+}
+
 export class Snowflake {
-	#timestamp;
-	#increment;
-	#server_id;
-	#worker_id;
+	/**
+	 * Timestamp in milliseconds when Snowflake was created.
+	 * @type {number}
+	 * @readonly
+	 */
+	timestamp;
+	/**
+	 * Server ID where Snowflake was created.
+	 * @type {number}
+	 * @readonly
+	 */
+	server_id;
+	/**
+	 * Worker ID where Snowflake was created.
+	 * @type {number}
+	 * @readonly
+	 */
+	worker_id;
+	/**
+	 * Increment of Snowflake.
+	 * @type {number}
+	 * @readonly
+	 */
+	increment;
 
 	#array_buffer;
 	#uint8_array;
@@ -62,10 +95,10 @@ export class Snowflake {
 				| number_server_id_worker_id,
 		);
 
-		this.#timestamp = timestamp;
-		this.#increment = increment;
-		this.#server_id = server_id;
-		this.#worker_id = worker_id;
+		assign(this, 'timestamp', timestamp);
+		assign(this, 'server_id', server_id);
+		assign(this, 'worker_id', worker_id);
+		assign(this, 'increment', increment);
 	}
 
 	#fromSnowflake(
@@ -125,65 +158,43 @@ export class Snowflake {
 
 		const number_right = data_view.getUint32(4);
 
-		this.#timestamp = (data_view.getUint32(0) * NUMBER_TS_RIGHT) + (number_right >>> 22) + EPOCH;
-		this.#increment = (number_right << 10 >>> 10 >>> increment_bit_offset);
-		this.#server_id = (number_right >>> worker_id_bits) & server_id_mask;
-		this.#worker_id = number_right & worker_id_mask;
-	}
-
-	/**
-	 * Timestamp in milliseconds when Snowflake was created.
-	 * @type {number}
-	 * @readonly
-	 */
-	get timestamp() {
-		return this.#timestamp;
-	}
-
-	/**
-	 * Increment of Snowflake.
-	 * @type {number}
-	 * @readonly
-	 */
-	get increment() {
-		return this.#increment;
-	}
-
-	/**
-	 * Server ID where Snowflake was created.
-	 * @type {number}
-	 * @readonly
-	 */
-	get server_id() {
-		return this.#server_id;
-	}
-
-	/**
-	 * Worker ID where Snowflake was created.
-	 * @type {number}
-	 * @readonly
-	 */
-	get worker_id() {
-		return this.#worker_id;
+		assign(
+			this,
+			'timestamp',
+			(data_view.getUint32(0) * NUMBER_TS_RIGHT) + (number_right >>> 22) + EPOCH,
+		);
+		assign(
+			this,
+			'server_id',
+			(number_right >>> worker_id_bits) & server_id_mask,
+		);
+		assign(
+			this,
+			'worker_id',
+			number_right & worker_id_mask,
+		);
+		assign(
+			this,
+			'increment',
+			(number_right << 10 >>> 10 >>> increment_bit_offset),
+		);
 	}
 
 	/**
 	 * ArrayBuffer representation of this Snowflake.
-	 * @type {ArrayBuffer}
-	 * @readonly
+	 * @returns {ArrayBuffer}
 	 */
-	get array_buffer() {
+	toArrayBuffer() {
 		return this.#array_buffer;
 	}
 
 	/**
 	 * Uint8Array representation of this Snowflake.
-	 * @type {Uint8Array}
-	 * @readonly
+	 * @returns {Uint8Array}
 	 */
-	get uint8_array() {
+	toUint8Array() {
 		if (!this.#uint8_array) {
-			this.#uint8_array = new Uint8Array(this.#array_buffer);
+			this.#uint8_array = new Uint8Array(this.toArrayBuffer());
 		}
 
 		return this.#uint8_array;
@@ -191,23 +202,23 @@ export class Snowflake {
 
 	/**
 	 * Node.JS Buffer representation of this Snowflake.
-	 * @type {Buffer}
-	 * @readonly
+	 * @returns {Buffer}
 	 */
-	get buffer() {
+	toBuffer() {
 		return Buffer.from(
-			this.#array_buffer,
+			this.toArrayBuffer(),
 		);
 	}
 
 	/**
 	 * BigInt representation of this Snowflake.
-	 * @type {bigint}
-	 * @readonly
+	 * @returns {bigint}
 	 */
-	get bigint() {
+	toBigInt() {
 		if (!this.#bigint) {
-			this.#bigint = new DataView(this.#array_buffer).getBigUint64(0);
+			this.#bigint = new DataView(
+				this.toArrayBuffer(),
+			).getBigUint64(0);
 		}
 
 		return this.#bigint;
@@ -215,21 +226,21 @@ export class Snowflake {
 
 	/**
 	 * This Snowflake as decimal string.
-	 * @type {string}
-	 * @readonly
+	 * @returns {string}
 	 */
-	get decimal() {
-		return this.bigint.toString();
+	toDecimal() {
+		return this.toBigInt().toString();
 	}
 
 	/**
 	 * This Snowflake as hex string.
-	 * @type {string}
-	 * @readonly
+	 * @returns {string}
 	 */
-	get hex() {
+	toHex() {
 		if (!this.#hex) {
-			this.#hex = arrayBufferToHex(this.#array_buffer);
+			this.#hex = arrayBufferToHex(
+				this.toArrayBuffer(),
+			);
 		}
 
 		return this.#hex;
@@ -237,12 +248,13 @@ export class Snowflake {
 
 	/**
 	 * This Snowflake as base62 string.
-	 * @type {string}
-	 * @readonly
+	 * @returns {string}
 	 */
-	get base62() {
+	toBase62() {
 		if (!this.#base62) {
-			this.#base62 = base62.encode(this.uint8_array);
+			this.#base62 = base62.encode(
+				this.toUint8Array(),
+			);
 		}
 
 		return this.#base62;

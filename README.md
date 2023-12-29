@@ -64,8 +64,6 @@ const snowflake = snowflakeFactory.create();
 
 Number of Snowflakes that can be created per millisecond is limited by **1024** by default. If you reach this limit, `create` method will throw an `SnowflakeIncrementOverflowError`. To avoid that error, use asynchronous `createSafe` method.
 
-You can adjust limit of Snowflakes per millisecond in the constructor, changing `bits` property of `SnowflakeFactoryOptions`.
-
 #### `async createSafe(): Snowflake`
 
 Asynchronously creates Snowflake, trying to avoid `SnowflakeIncrementOverflowError`.
@@ -83,7 +81,7 @@ Parses Snowflake from `ArrayBuffer`, `Buffer`, `BigInt` or `string`.
 When passing `value` as `string`, you should specify `encoding`.
 
 ```js
-// from ArrayBuffer
+// from ArrayBuffer (also works with Uint8Array)
 const snowflake = snowflakeFactory.parse(
     new Uint8Array([
         3, 149, 51, 166,
@@ -91,7 +89,7 @@ const snowflake = snowflakeFactory.parse(
     ]).buffer,
 );
 
-// from Buffer
+// from NodeJS' Buffer
 const snowflake = snowflakeFactory.parse(
     Buffer.from([
         3, 149, 51, 166,
@@ -100,7 +98,9 @@ const snowflake = snowflakeFactory.parse(
 );
 
 // from BigInt
-const snowflake = snowflakeFactory.parse(258169341764173824n);
+const snowflake = snowflakeFactory.parse(
+    258169341764173824n,
+);
 
 // from decimal string
 const snowflake = snowflakeFactory.parse(
@@ -139,62 +139,62 @@ Returns worker ID where Snowflake was created.
 
 Returns increment of Snowflake.
 
-#### `readonly array_buffer: ArrayBuffer`
+#### `toArrayBuffer(): ArrayBuffer`
 
 Returns Snowflake as `ArrayBuffer`.
 
 ```js
 const snowflake = snowflakeFactory.create();
-snowflake.array_buffer;
+snowflake.toArrayBuffer();
 // ArrayBuffer(8) { [Uint8Contents]: <03 95 33 a6 03 c0 00 00> }
 ```
 
-#### `readonly buffer: Buffer`
+#### `toBuffer(): Buffer`
 
 Returns Snowflake as `Buffer`.
 
 ```js
 const snowflake = snowflakeFactory.create();
-snowflake.buffer;
+snowflake.toBuffer();
 // <Buffer 03 95 33 a6 03 c0 00 00>
 ```
 
-#### `readonly bigint: BigInt`
+#### `toBigInt(): BigInt`
 
 Returns Snowflake as `BigInt`.
 
 ```js
 const snowflake = snowflakeFactory.create();
-snowflake.bigint;
+snowflake.toBigInt();
 // 258169341764173824n
 ```
 
-#### `readonly decimal: string`
+#### `toDecimal(): string`
 
 Returns Snowflake as base 10 (decimal) `string`.
 
 ```js
 const snowflake = snowflakeFactory.create();
-snowflake.decimal;
+snowflake.toDecimal();
 // '258169341764173824'
 ```
 
-#### `readonly hex: string`
+#### `toHex(): string`
 
 Returns Snowflake as base 16 (hex) `string`.
 
 ```js
 const snowflake = snowflakeFactory.create();
-snowflake.hex;
+snowflake.toHex();
 // '039533a603c00000'
 ```
 
-#### `readonly base62: string`
+#### `toBase62(): string`
 
 Returns Snowflake as base 62 `string`.
 
 ```js
 const snowflake = snowflakeFactory.create();
-snowflake.base62;
+snowflake.toBase62();
 // 'J4Pw2NnsAK'
 ```
