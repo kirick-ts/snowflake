@@ -8,7 +8,7 @@ Snowflake contains 64 bits of data:
 - by default, worker ID uses 5 bits;
 - increment uses what is left — by default it is 10 bits.
 
-Snowflakes converted to `BitInt`, decimal string, hex string and base-62 string are sortable. It means that Snowflakes created with the same `server_id` and `worker_id` will be sorted in the same order as they were created. Snowflakes created on different servers and/or different workers are sortable only by the timestamp — with the precision of 1 millisecond.
+Snowflakes converted to `BigInt`, decimal string, hex string and base-62 string are sortable. It means that Snowflakes created with the same `server_id` and `worker_id` will be sorted in the same order as they were created. Snowflakes created on different servers and/or different workers are sortable only by the timestamp — with the precision of 1 millisecond.
 
 ## Installation
 

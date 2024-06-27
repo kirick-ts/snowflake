@@ -1,4 +1,9 @@
 
+/**
+ * Convert an ArrayBuffer to a hex string.
+ * @param {ArrayBuffer} buffer - ArrayBuffer to convert.
+ * @returns {string} Hex string.
+ */
 export function arrayBufferToHex(buffer) {
 	let result = '';
 
@@ -13,6 +18,11 @@ export function arrayBufferToHex(buffer) {
 	return result;
 }
 
+/**
+ * Convert a hex string to an ArrayBuffer.
+ * @param {string} hex - Hex string to convert.
+ * @returns {ArrayBuffer} ArrayBuffer.
+ */
 export function hexToArrayBuffer(hex) {
 	const uint8_array = new Uint8Array(hex.length / 2);
 

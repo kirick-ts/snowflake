@@ -1,4 +1,13 @@
 
+/**
+ * @typedef {object} SnowflakeFactoryOptions
+ * @property {number} server_id_mask - Bitmask for Server ID (maximum value of the Server ID).
+ * @property {number} worker_id_bits - Number of bits for Worker ID.
+ * @property {number} worker_id_mask - Bitmask for Worker ID (maximum value of the Worker ID).
+ * @property {number} increment_bit_offset - Number of bits to shift the increment value inside the second 32-bit integer of the Snowflake.
+ * @property {number} number_server_id_worker_id - Number representing the Server ID and Worker ID combined.
+ */
+
 import {
 	SnowflakeError,
 	SnowflakeIncrementOverflowError } from './errors.js';
@@ -13,6 +22,7 @@ export class SnowflakeFactory {
 	#increment_timestamp = 0;
 	#increment_max;
 
+	/** @type {SnowflakeFactoryOptions} */
 	#snowflake_options;
 
 	constructor({
@@ -66,8 +76,8 @@ export class SnowflakeFactory {
 	 */
 	create() {
 		const timestamp = Date.now();
-
 		if (timestamp < this.#increment_timestamp) {
+			// Yes, I actually was it that situation. It's not a joke.
 			throw new SnowflakeError(`Cannot create snowflake: Date.now() has returned (probably) invalid value ${timestamp}, but previously we got ${this.#increment_timestamp}, is code running on time machine?`);
 		}
 
@@ -79,24 +89,25 @@ export class SnowflakeFactory {
 			throw new SnowflakeIncrementOverflowError();
 		}
 
-		return new Snowflake(
-			timestamp,
-			this.#increment++,
-			this.#server_id,
-			this.#worker_id,
+		return Snowflake.fromValues(
+			{
+				timestamp,
+				server_id: this.#server_id,
+				worker_id: this.#worker_id,
+				increment: this.#increment++,
+			},
 			this.#snowflake_options,
 		);
 	}
 
 	/**
-	 * Asynchronously creates new Snowflake. Tries to avoid SnowflakeIncrementOverflowError by waiting for next millisecond.
+	 * Asynchronously creates new Snowflake, avoiding SnowflakeIncrementOverflowError by waiting for next millisecond.
 	 * @async
 	 * @throws {SnowflakeError}
-	 * @throws {SnowflakeIncrementOverflowError} If increment has reached maximum value after 100 tries. Try again in next millisecond.
 	 * @returns {Promise<Snowflake>} New Snowflake instance.
 	 */
 	async createSafe() {
-		for (let try_id = 0; try_id < 100; try_id++) {
+		for (;;) {
 			try {
 				return this.create();
 			}
@@ -107,8 +118,6 @@ export class SnowflakeFactory {
 				}
 			}
 		}
-
-		throw new SnowflakeIncrementOverflowError();
 	}
 
 	/**
@@ -119,7 +128,7 @@ export class SnowflakeFactory {
 	 * @returns {Snowflake} Parsed Snowflake instance.
 	 */
 	parse(snowflake, encoding) {
-		return new Snowflake(
+		return Snowflake.fromSnowflake(
 			snowflake,
 			encoding,
 			this.#snowflake_options,

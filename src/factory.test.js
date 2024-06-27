@@ -1,6 +1,10 @@
 
-/* global describe, test, expect */
+/* eslint-disable jsdoc/require-jsdoc */
 
+import {
+	describe,
+	test,
+	expect }                from 'vitest';
 import { SnowflakeFactory } from './factory.js';
 import { Snowflake }        from './snowflake.js';
 import { asyncTimeout }     from './utils/async-timeout.js';

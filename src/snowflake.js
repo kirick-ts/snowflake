@@ -1,4 +1,15 @@
 
+/**
+ * @typedef {import('./factory.js').SnowflakeFactoryOptions} SnowflakeFactoryOptions
+ */
+/**
+ * @typedef {object} SnowflakeDescription
+ * @property {number} timestamp - Timestamp in milliseconds when Snowflake was created.
+ * @property {number} server_id - Server ID where Snowflake was created.
+ * @property {number} worker_id - Worker ID where Snowflake was created.
+ * @property {number} increment - Increment of Snowflake.
+ */
+
 import { SnowflakeError } from './errors.js';
 import {
 	arrayBufferToHex,
@@ -7,19 +18,6 @@ import { base62 }         from './utils/base62.js';
 
 const EPOCH = 1_640_995_200_000; // Jan 1, 2022
 const NUMBER_TS_RIGHT = 2 ** 10; // 10 bits to the right number, 32 bits will remain on the left side
-
-function assign(target, key, value) {
-	Object.defineProperty(
-		target,
-		key,
-		{
-			value,
-			enumerable: true,
-			writable: false,
-			configurable: false,
-		},
-	);
-}
 
 export class Snowflake {
 	/**
@@ -47,31 +45,48 @@ export class Snowflake {
 	 */
 	increment;
 
+	/** @type {ArrayBuffer} */
 	#array_buffer;
-	#uint8_array;
-	#bigint;
-	#hex;
-	#base62;
+	/** @type {DataView} */
+	#data_view;
 
-	constructor(...args) {
-		switch (args.length) {
-			case 5:
-				this.#fromValues(...args);
-				break;
-			case 3:
-				this.#fromSnowflake(...args);
-				break;
-			default:
-				throw new TypeError('Invalid arguments given.');
-		}
+	/**
+	 * @param {ArrayBuffer} array_buffer -
+	 * @param {DataView} data_view -
+	 * @param {SnowflakeDescription} description -
+	 */
+	constructor(
+		array_buffer,
+		data_view,
+		{
+			timestamp,
+			server_id,
+			worker_id,
+			increment,
+		},
+	) {
+		this.#array_buffer = array_buffer;
+		this.#data_view = data_view;
+
+		this.timestamp = timestamp;
+		this.server_id = server_id;
+		this.worker_id = worker_id;
+		this.increment = increment;
 	}
 
-	// eslint-disable-next-line max-params
-	#fromValues(
-		timestamp,
-		increment,
-		server_id,
-		worker_id,
+	/**
+	 * Create a new Snowflake from values.
+	 * @param {SnowflakeDescription} snowflake_description -
+	 * @param {SnowflakeFactoryOptions} options Options for encoding.
+	 * @returns {Snowflake} New Snowflake instance.
+	 */
+	static fromValues(
+		{
+			timestamp,
+			server_id,
+			worker_id,
+			increment,
+		},
 		{
 			increment_bit_offset,
 			number_server_id_worker_id,
@@ -79,8 +94,8 @@ export class Snowflake {
 	) {
 		const timestamp_epoch = timestamp - EPOCH;
 
-		this.#array_buffer = new ArrayBuffer(8);
-		const data_view = new DataView(this.#array_buffer);
+		const array_buffer = new ArrayBuffer(8);
+		const data_view = new DataView(array_buffer);
 
 		// timestamp
 		data_view.setUint32(
@@ -95,13 +110,26 @@ export class Snowflake {
 				| number_server_id_worker_id,
 		);
 
-		assign(this, 'timestamp', timestamp);
-		assign(this, 'server_id', server_id);
-		assign(this, 'worker_id', worker_id);
-		assign(this, 'increment', increment);
+		return new Snowflake(
+			array_buffer,
+			data_view,
+			{
+				timestamp,
+				server_id,
+				worker_id,
+				increment,
+			},
+		);
 	}
 
-	#fromSnowflake(
+	/**
+	 * Create a new Snowflake from values.
+	 * @param {ArrayBuffer | Buffer | bigint | string} snowflake -
+	 * @param {string} encoding -
+	 * @param {SnowflakeFactoryOptions} options Options for encoding.
+	 * @returns {Snowflake} New Snowflake instance.
+	 */
+	static fromSnowflake(
 		snowflake,
 		encoding,
 		{
@@ -111,19 +139,23 @@ export class Snowflake {
 			increment_bit_offset,
 		},
 	) {
+		/** @type {ArrayBuffer | null} */
+		let array_buffer = null;
+		/** @type {DataView | null} */
+		let data_view = null;
 		if (snowflake instanceof ArrayBuffer) {
-			this.#array_buffer = snowflake;
+			array_buffer = snowflake;
 		}
 		else if (Buffer.isBuffer(snowflake)) {
-			this.#array_buffer = snowflake.buffer.slice(
-				snowflake.offset,
-				snowflake.offset + snowflake.byteLength,
+			array_buffer = snowflake.buffer.slice(
+				snowflake.byteOffset,
+				snowflake.byteOffset + snowflake.byteLength,
 			);
 		}
 		else if (typeof snowflake === 'bigint') {
-			this.#array_buffer = new ArrayBuffer(8);
+			array_buffer = new ArrayBuffer(8);
 
-			const data_view = new DataView(this.#array_buffer);
+			data_view = new DataView(array_buffer);
 			data_view.setBigUint64(
 				0,
 				snowflake,
@@ -131,132 +163,107 @@ export class Snowflake {
 		}
 		else if (typeof snowflake === 'string') {
 			switch (encoding) {
-				case 'decimal': {
-					this.#array_buffer = new ArrayBuffer(8);
+				case 'decimal':
+					array_buffer = new ArrayBuffer(8);
 
-					const data_view = new DataView(this.#array_buffer);
+					data_view = new DataView(array_buffer);
 					data_view.setBigUint64(
 						0,
 						BigInt(snowflake),
 					);
-				} break;
+					break;
 				case 'hex':
-					this.#array_buffer = hexToArrayBuffer(snowflake);
+					array_buffer = hexToArrayBuffer(snowflake);
 					break;
 				case 'base62':
-					this.#array_buffer = base62.decode(snowflake).buffer;
+					array_buffer = base62.decode(snowflake).buffer;
 					break;
 				// no default
 			}
 		}
 
-		if (this.#array_buffer === undefined) {
+		if (array_buffer === null) {
 			throw new SnowflakeError(`Unknown encoding: ${encoding}`);
 		}
-
-		const data_view = new DataView(this.#array_buffer);
+		if (data_view === null) {
+			data_view = new DataView(array_buffer);
+		}
 
 		const number_right = data_view.getUint32(4);
 
-		assign(
-			this,
-			'timestamp',
-			(data_view.getUint32(0) * NUMBER_TS_RIGHT) + (number_right >>> 22) + EPOCH,
-		);
-		assign(
-			this,
-			'server_id',
-			(number_right >>> worker_id_bits) & server_id_mask,
-		);
-		assign(
-			this,
-			'worker_id',
-			number_right & worker_id_mask,
-		);
-		assign(
-			this,
-			'increment',
-			(number_right << 10 >>> 10 >>> increment_bit_offset),
+		return new Snowflake(
+			array_buffer,
+			data_view,
+			{
+				timestamp: (data_view.getUint32(0) * NUMBER_TS_RIGHT) + (number_right >>> 22) + EPOCH,
+				server_id: (number_right >>> worker_id_bits) & server_id_mask,
+				worker_id: number_right & worker_id_mask,
+				increment: (number_right << 10 >>> 10 >>> increment_bit_offset),
+			},
 		);
 	}
 
 	/**
-	 * ArrayBuffer representation of this Snowflake.
-	 * @returns {ArrayBuffer}
+	 * Snowflake as ArrayBuffer.
+	 * @returns {ArrayBuffer} -
 	 */
 	toArrayBuffer() {
 		return this.#array_buffer;
 	}
 
 	/**
-	 * Uint8Array representation of this Snowflake.
-	 * @returns {Uint8Array}
+	 * Snowflake as Uint8Array.
+	 * @returns {Uint8Array} -
 	 */
 	toUint8Array() {
-		if (!this.#uint8_array) {
-			this.#uint8_array = new Uint8Array(this.toArrayBuffer());
-		}
-
-		return this.#uint8_array;
-	}
-
-	/**
-	 * Node.JS Buffer representation of this Snowflake.
-	 * @returns {Buffer}
-	 */
-	toBuffer() {
-		return Buffer.from(
-			this.toArrayBuffer(),
+		return new Uint8Array(
+			this.#array_buffer,
 		);
 	}
 
 	/**
-	 * BigInt representation of this Snowflake.
-	 * @returns {bigint}
+	 * Snowflake as Node.JS Buffer.
+	 * @returns {Buffer} -
 	 */
-	toBigInt() {
-		if (!this.#bigint) {
-			this.#bigint = new DataView(
-				this.toArrayBuffer(),
-			).getBigUint64(0);
-		}
-
-		return this.#bigint;
+	toBuffer() {
+		return Buffer.from(
+			this.#array_buffer,
+		);
 	}
 
 	/**
-	 * This Snowflake as decimal string.
-	 * @returns {string}
+	 * Snowflake as BigInt.
+	 * @returns {bigint} -
+	 */
+	toBigInt() {
+		return this.#data_view.getBigUint64(0);
+	}
+
+	/**
+	 * Snowflake as decimal string.
+	 * @returns {string} -
 	 */
 	toDecimal() {
 		return this.toBigInt().toString();
 	}
 
 	/**
-	 * This Snowflake as hex string.
-	 * @returns {string}
+	 * Snowflake as hex string.
+	 * @returns {string} -
 	 */
 	toHex() {
-		if (!this.#hex) {
-			this.#hex = arrayBufferToHex(
-				this.toArrayBuffer(),
-			);
-		}
-
-		return this.#hex;
+		return arrayBufferToHex(
+			this.#array_buffer,
+		);
 	}
 
 	/**
-	 * This Snowflake as base62 string.
-	 * @returns {string}
+	 * Snowflake as base62 string.
+	 * @returns {string} -
 	 */
 	toBase62() {
-		if (!this.#base62) {
-			this.#base62 = base62.encode(
-				this.toUint8Array(),
-			);
-		}
-
-		return this.#base62;
+		return base62.encode(
+			this.toUint8Array(),
+		);
 	}
 }
