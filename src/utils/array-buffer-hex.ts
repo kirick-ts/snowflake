@@ -1,10 +1,10 @@
 
 /**
  * Convert an ArrayBuffer to a hex string.
- * @param {ArrayBuffer} buffer - ArrayBuffer to convert.
- * @returns {string} Hex string.
+ * @param buffer - ArrayBuffer to convert.
+ * @returns Hex string.
  */
-export function arrayBufferToHex(buffer) {
+export function arrayBufferToHex(buffer: ArrayBuffer | SharedArrayBuffer): string {
 	let result = '';
 
 	for (const value of new Uint8Array(buffer)) {
@@ -20,10 +20,10 @@ export function arrayBufferToHex(buffer) {
 
 /**
  * Convert a hex string to an ArrayBuffer.
- * @param {string} hex - Hex string to convert.
- * @returns {ArrayBuffer} ArrayBuffer.
+ * @param hex - Hex string to convert.
+ * @returns ArrayBuffer.
  */
-export function hexToArrayBuffer(hex) {
+export function hexToArrayBuffer(hex: string): ArrayBuffer {
 	const uint8_array = new Uint8Array(hex.length / 2);
 
 	for (
