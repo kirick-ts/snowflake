@@ -1,200 +1,99 @@
+# @kirick/snowflake
 
-# snowflake-js
-Easy-to-use generator of unique &amp; sortable IDs.
+[![npm version](https://img.shields.io/npm/v/@kirick/snowflake.svg)](https://www.npmjs.com/package/@kirick/snowflake)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Snowflake contains 64 bits of data:
-- timestamp uses 42 bits;
-- by default, server ID uses 7 bits;
-- by default, worker ID uses 5 bits;
-- increment uses what is left — by default it is 10 bits.
+Generator of unique & sortable IDs based on the Snowflake algorithm.
 
-Snowflakes converted to `BigInt`, decimal string, hex string and base-62 string are sortable. It means that Snowflakes created with the same `server_id` and `worker_id` will be sorted in the same order as they were created. Snowflakes created on different servers and/or different workers are sortable only by the timestamp — with the precision of 1 millisecond.
+## Features
+
+- 🔄 **Distributed**: Generate IDs across multiple servers without coordination
+- 📊 **Sortable**: IDs are time-ordered for easy sorting and indexing
+- 🔢 **64-bit integers**: Compact representation with high uniqueness
+- 🛠️ **Customizable**: Configure server/worker bits to suit your infrastructure
+- 🔄 **Multiple formats**: Convert between ArrayBuffer, Buffer, BigInt, decimal, hex, and base62
+- 🚦 **Safe mode**: Automatic handling of sequence overflow
+- 🔍 **TypeScript**: Fully typed API for improved developer experience
+
+## How It Works
+
+Snowflake IDs are 64-bit values structured as follows:
+
+```
++-----------+--------+--------+-----------+
+| timestamp | server | worker | increment |
+| 42 bits   | 7 bits | 5 bits | 10 bits   |
++-----------+--------+--------+-----------+
+```
+
+The actual bit allocation for `server` and `worker` can be adjusted using the `bits` option in the constructor.
+
+- **Timestamp**: Milliseconds since January 1, 2022
+- **Server ID**: Identifies the server instance
+- **Worker ID**: Identifies the worker process on the server
+- **Increment**: Sequence number for IDs generated in the same millisecond
 
 ## Installation
 
 ```bash
 bun install @kirick/snowflake
+# or
 pnpm install @kirick/snowflake
+# or
 npm install @kirick/snowflake
 ```
 
-## API
+## Usage
 
-### SnowflakeFactory
+### Basic Usage
 
-#### `constructor(options: SnowflakeFactoryOptions): SnowflakeFactory`
-
-First of all, you need to define Server ID and Worker ID. You should do it yourself, because it depends on your project. For example, you can use environment variables.
-
-Then, create `SnowflakeFactory`.
-
-```js
+```typescript
 import { SnowflakeFactory } from '@kirick/snowflake';
 
-const snowflakeFactory = new SnowflakeFactory({
-    serverId: process.env.SERVER_ID,
-    workerId: process.env.WORKER_ID,
+// Create a factory with custom server and worker IDs
+const factory = new SnowflakeFactory({
+  server_id: 3,
+  worker_id: 2
 });
+
+// Generate a new snowflake ID
+const snowflake = factory.create();
+
+// Convert to different formats
+console.log(snowflake.toDecimal()); // "197388558662189056"
+console.log(snowflake.toHex());     // "02be35da5e810042"
+console.log(snowflake.toBase62());  // "3fMxtObVhma"
+console.log(snowflake.toBigInt());  // 197388558662189056n
+
+// Extract components
+console.log(snowflake.timestamp); // 1690123456789
+console.log(snowflake.server_id); // 3
+console.log(snowflake.worker_id); // 2
+console.log(snowflake.increment); // 0
 ```
 
-By default, Snowflake uses **7** bits for `server_id` (limiting `server_id` to **128**) and **5** bits for `worker_id` (limiting `worker_id` to **32**). To change this, pass `bits` property to `SnowflakeFactoryOptions`.
+### Custom Bit Allocation
 
-```js
-const snowflakeFactory = new SnowflakeFactory({
-    serverId: process.env.SERVER_ID,
-    workerId: process.env.WORKER_ID,
-    bits: {
-        server_id: 10,
-        worker_id: 10,
-    },
+Customize how bits are allocated between server ID, worker ID, and increment counter to match your specific infrastructure needs. This feature allows you to optimize the Snowflake algorithm for different scaling patterns:
+
+- **Horizontal Scaling**: Allocate more bits to server ID when deploying across many physical servers or cloud instances;
+- **Vertical Scaling**: Allocate more bits to worker ID when running many workers on fewer, more powerful machines;
+- **High-Frequency Generation**: Reduce server/worker bits to allow for more increments per millisecond when generating many IDs on a single node.
+
+The total available bits for customization is fixed at 22 bits (the remaining 42 bits are reserved for the timestamp). Increasing one value means decreasing another, allowing you to make tradeoffs based on your architecture.
+
+```typescript
+import { SnowflakeFactory } from '@kirick/snowflake';
+
+// Customize bit allocation for different scaling needs
+const factory = new SnowflakeFactory({
+  bits: {
+    server_id: 10, // 10 bits = up to 1023 servers
+    worker_id: 6   // 6 bits = up to 63 workers per server
+    // there are 5 bits left for increment counter
+    // so, 31 snowflakes can be created per millisecond per worker per server
+  },
+  server_id: 42,
+  worker_id: 7
 });
-```
-
-Remember that total number of bits for `server_id` and `worker_id` is limited by **22**. By increasing number of bits for `server_id` and `worker_id` you decrease number of bits for `increment` and decrease number of Snowflakes that can be created per millisecond. In example above, number of bits left for `increment` is only `64 - 42 - 10 - 10 = 2`, which means that only **4** Snowflakes can be created per millisecond.
-
-It is possible to set bits of `server_id` and/or `worker_id` to **0**. For example, it may be convenient to remove `server_id` for Kubernetes pods.
-
-#### `create(): Snowflake`
-
-Synchronously creates Snowflake.
-
-```js
-const snowflake = snowflakeFactory.create();
-```
-
-Number of Snowflakes that can be created per millisecond is limited by **1024** by default. If you reach this limit, `create` method will throw an `SnowflakeIncrementOverflowError`. To avoid that error, use asynchronous `createSafe` method.
-
-#### `async createSafe(): Snowflake`
-
-Asynchronously creates Snowflake, trying to avoid `SnowflakeIncrementOverflowError`.
-
-Each time it gets `SnowflakeIncrementOverflowError`, it waits until the next millisecond and then tries to generate a new Snowflake.
-
-```js
-const snowflake = await snowflakeFactory.createSafe();
-```
-
-#### `parse(value: ArrayBuffer | Buffer | BigInt | string, encoding? = "decimal" | "hex" | "base62"): Snowflake`
-
-Parses Snowflake from `ArrayBuffer`, `Buffer`, `BigInt` or `string`.
-
-When passing `value` as `string`, you should specify `encoding`.
-
-```js
-// from ArrayBuffer (also works with Uint8Array)
-const snowflake = snowflakeFactory.parse(
-    new Uint8Array([
-        3, 149, 51, 166,
-        3, 192,  0,   0
-    ]).buffer,
-);
-
-// from NodeJS' Buffer
-const snowflake = snowflakeFactory.parse(
-    Buffer.from([
-        3, 149, 51, 166,
-        3, 192,  0,   0
-    ]),
-);
-
-// from BigInt
-const snowflake = snowflakeFactory.parse(
-    258169341764173824n,
-);
-
-// from decimal string
-const snowflake = snowflakeFactory.parse(
-    '258169341764173824',
-    'decimal',
-);
-
-// from hex string
-const snowflake = snowflakeFactory.parse(
-    '039533a603c00000',
-    'hex',
-);
-
-// from base62 string
-const snowflake = snowflakeFactory.parse(
-    'J4Pw2NnsAK',
-    'base62',
-);
-```
-
-### Snowflake
-
-#### `readonly timestamp: number`
-
-Returns timestamp in milliseconds when Snowflake was created.
-
-#### `readonly server_id: number`
-
-Returns server ID where Snowflake was created.
-
-#### `readonly worker_id: number`
-
-Returns worker ID where Snowflake was created.
-
-#### `readonly increment: number`
-
-Returns increment of Snowflake.
-
-#### `toArrayBuffer(): ArrayBuffer`
-
-Returns Snowflake as `ArrayBuffer`.
-
-```js
-const snowflake = snowflakeFactory.create();
-snowflake.toArrayBuffer();
-// ArrayBuffer(8) { [Uint8Contents]: <03 95 33 a6 03 c0 00 00> }
-```
-
-#### `toBuffer(): Buffer`
-
-Returns Snowflake as `Buffer`.
-
-```js
-const snowflake = snowflakeFactory.create();
-snowflake.toBuffer();
-// <Buffer 03 95 33 a6 03 c0 00 00>
-```
-
-#### `toBigInt(): BigInt`
-
-Returns Snowflake as `BigInt`.
-
-```js
-const snowflake = snowflakeFactory.create();
-snowflake.toBigInt();
-// 258169341764173824n
-```
-
-#### `toDecimal(): string`
-
-Returns Snowflake as base 10 (decimal) `string`.
-
-```js
-const snowflake = snowflakeFactory.create();
-snowflake.toDecimal();
-// '258169341764173824'
-```
-
-#### `toHex(): string`
-
-Returns Snowflake as base 16 (hex) `string`.
-
-```js
-const snowflake = snowflakeFactory.create();
-snowflake.toHex();
-// '039533a603c00000'
-```
-
-#### `toBase62(): string`
-
-Returns Snowflake as base 62 `string`.
-
-```js
-const snowflake = snowflakeFactory.create();
-snowflake.toBase62();
-// 'J4Pw2NnsAK'
 ```

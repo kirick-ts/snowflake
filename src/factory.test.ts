@@ -1,13 +1,13 @@
-
 /* eslint-disable jsdoc/require-jsdoc */
 
 import {
 	describe,
 	test,
-	expect }                from 'vitest';
+	expect,
+} from 'vitest';
 import { SnowflakeFactory } from './factory.js';
-import { Snowflake }        from './snowflake.js';
-import { asyncTimeout }     from './utils/async-timeout.js';
+import { Snowflake } from './snowflake.js';
+import { asyncTimeout } from './utils.js';
 
 const SERVER_ID = Math.trunc(Math.random() * 16);
 const WORKER_ID = Math.trunc(Math.random() * 16);
@@ -17,7 +17,7 @@ const snowflakeFactory = new SnowflakeFactory({
 	worker_id: WORKER_ID,
 });
 
-function testSnowflake(snowflake, timestamp) {
+function testSnowflake(snowflake: Snowflake, timestamp: number) {
 	expect(snowflake).toBeInstanceOf(Snowflake);
 	expect(snowflake.timestamp).toBeGreaterThanOrEqual(timestamp);
 	expect(snowflake.timestamp).toBeLessThanOrEqual(timestamp + 1);
@@ -67,10 +67,7 @@ describe('types', () => {
 		expect(result).toBeLessThan(2n ** 64n);
 
 		testSnowflake(
-			snowflakeFactory.parse(
-				result,
-				'bigint',
-			),
+			snowflakeFactory.parse(result),
 			timestamp,
 		);
 	});
@@ -140,7 +137,12 @@ while (snowflakes.length < 10) {
 }
 
 describe('compare', () => {
-	for (const method of [ 'toBigInt', 'toDecimal', 'toHex', 'toBase62' ]) {
+	for (const method of [
+		'toBigInt',
+		'toDecimal',
+		'toHex',
+		'toBase62',
+	]) {
 		test(method, () => {
 			for (let index = 1; index < snowflakes.length; index++) {
 				const snowflake1 = snowflakes[index - 1];

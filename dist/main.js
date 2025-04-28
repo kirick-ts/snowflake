@@ -1,28 +1,4 @@
-"use strict";
-//#region rolldown:runtime
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __copyProps = (to, from, except, desc) => {
-	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
-		key = keys[i];
-		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
-			get: ((k) => from[k]).bind(null, key),
-			enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-		});
-	}
-	return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
-	value: mod,
-	enumerable: true
-}) : target, mod));
-
-//#endregion
-const base_x = __toESM(require("base-x"));
+import basex from "base-x";
 
 //#region src/errors.ts
 var SnowflakeError = class extends Error {};
@@ -60,7 +36,7 @@ function hexToArrayBuffer(hex) {
 
 //#endregion
 //#region src/utils.ts
-const base62 = (0, base_x.default)("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+const base62 = basex("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 /**
 * Wrapper for setTimeout.
 * @param delay - The delay in milliseconds.
@@ -268,7 +244,4 @@ var SnowflakeFactory = class {
 };
 
 //#endregion
-exports.Snowflake = Snowflake
-exports.SnowflakeError = SnowflakeError
-exports.SnowflakeFactory = SnowflakeFactory
-exports.SnowflakeIncrementOverflowError = SnowflakeIncrementOverflowError
+export { Snowflake, SnowflakeError, SnowflakeFactory, SnowflakeIncrementOverflowError };
