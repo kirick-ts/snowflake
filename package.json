@@ -1,6 +1,6 @@
 {
 	"name": "@kirick/snowflake",
-	"version": "0.2.3-dev",
+	"version": "0.2.3",
 	"description": "Generator of unique & sortable IDs.",
 	"publishConfig": {
 		"access": "public"

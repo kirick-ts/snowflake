@@ -3,17 +3,15 @@
 [![npm version](https://img.shields.io/npm/v/@kirick/snowflake.svg)](https://www.npmjs.com/package/@kirick/snowflake)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Generator of unique & sortable IDs based on the Snowflake algorithm.
+Generator of unique & sortable IDs based on the [Snowflake IDs](https://en.wikipedia.org/wiki/Snowflake_ID) algorithm.
 
 ## Features
 
 - 🔄 **Distributed**: Generate IDs across multiple servers without coordination
-- 📊 **Sortable**: IDs are time-ordered for easy sorting and indexing
-- 🔢 **64-bit integers**: Compact representation with high uniqueness
-- 🛠️ **Customizable**: Configure server/worker bits to suit your infrastructure
-- 🔄 **Multiple formats**: Convert between ArrayBuffer, Buffer, BigInt, decimal, hex, and base62
-- 🚦 **Safe mode**: Automatic handling of sequence overflow
+- 📊 **Sortable**: IDs are time-ordered for easy sorting with default JS operators and indexing
+- 🔄 **Multiple formats**: Use Snowflakes as ArrayBuffer, Buffer, BigInt, as well as decimal, hexadecimal, and base62 strings
 - 🔍 **TypeScript**: Fully typed API for improved developer experience
+- 🛠️ **Customizable**: Configure server/worker bits to suit your infrastructure
 
 ## How It Works
 
@@ -88,10 +86,10 @@ import { SnowflakeFactory } from '@kirick/snowflake';
 // Customize bit allocation for different scaling needs
 const factory = new SnowflakeFactory({
   bits: {
-    server_id: 10, // 10 bits = up to 1023 servers
-    worker_id: 6   // 6 bits = up to 63 workers per server
+    server_id: 10, // 10 bits = up to 1024 servers
+    worker_id: 6   // 6 bits = up to 64 workers per server
     // there are 5 bits left for increment counter
-    // so, 31 snowflakes can be created per millisecond per worker per server
+    // so, 32 snowflakes can be created per millisecond per worker per server
   },
   server_id: 42,
   worker_id: 7

@@ -80,7 +80,7 @@ export class SnowflakeFactory {
 	create(): Snowflake {
 		const timestamp = Date.now();
 		if (timestamp < this.increment_timestamp) {
-			// Yes, I actually was it that situation. It's not a joke.
+			// Yes, I actually was in that situation. It's not a joke.
 			throw new SnowflakeError(
 				`Cannot create snowflake: Date.now() has returned (probably) invalid value ${timestamp}, but previously we got ${this.increment_timestamp}, is code running on time machine?`,
 			);

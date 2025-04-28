@@ -12,8 +12,8 @@ var SnowflakeIncrementOverflowError = class extends SnowflakeError {
 //#region src/utils/array-buffer-hex.ts
 /**
 * Convert an ArrayBuffer to a hex string.
-* @param {ArrayBuffer} buffer - ArrayBuffer to convert.
-* @returns {string} Hex string.
+* @param buffer - ArrayBuffer to convert.
+* @returns Hex string.
 */
 function arrayBufferToHex(buffer) {
 	let result = "";
@@ -25,8 +25,8 @@ function arrayBufferToHex(buffer) {
 }
 /**
 * Convert a hex string to an ArrayBuffer.
-* @param {string} hex - Hex string to convert.
-* @returns {ArrayBuffer} ArrayBuffer.
+* @param hex - Hex string to convert.
+* @returns ArrayBuffer.
 */
 function hexToArrayBuffer(hex) {
 	const uint8_array = new Uint8Array(hex.length / 2);
