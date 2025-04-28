@@ -1,0 +1,31 @@
+# ignore tests
+**/*.test.*
+**/*.test.d.ts
+test/
+
+# ignore source files of the Typescript project
+src/
+
+# ignore configs
+.luarc.json
+biome.json
+# these names cannot be declared using {js,mjs,cjs} syntax
+# is this case rule n/no-unpublished-import screams at me
+eslint.config.js
+eslint.config.mjs
+eslint.config.cjs
+tsconfig.json
+tsconfig.*.json
+vitest.config.js
+vitest.config.ts
+
+# ignore repo configs
+.github/
+.gitea/
+
+# ignore IDE files
+.idea
+.nova
+
+# ignore additional files
+node_modules*
