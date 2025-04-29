@@ -1,6 +1,6 @@
 {
 	"name": "@kirick/snowflake",
-	"version": "0.2.3",
+	"version": "0.3.0",
 	"description": "Generator of unique & sortable IDs.",
 	"publishConfig": {
 		"access": "public"
@@ -18,21 +18,22 @@
 		"node": ">=14.13.1"
 	},
 	"dependencies": {
-		"base-x": "^5.0"
+		"base-x": "5.0.1"
 	},
 	"devDependencies": {
-		"@kirick/eslint-config": "latest",
-		"@types/bun": "^1.2.10",
+		"@kirick/eslint-config": "0.1.30",
 		"@types/node": "^22.14.1",
 		"eslint": "9.10.0",
+		"publint": "^0.3.12",
 		"tsdown": "^0.10.0",
 		"typescript": "5.8.3",
+		"unplugin-unused": "^0.4.4",
 		"vitest": "3.1.2"
 	},
 	"scripts": {
-		"build": "tsdown src/main.ts --dts --format esm --format cjs --clean && rm dist/main.d.cts",
+		"build": "tsdown src/main.ts --publint --unused --dts --format esm --format cjs && rm dist/main.d.cts",
 		"check": "bun run lint && bun run build && bun run test",
-		"lint": "eslint . && bunx tsc --skipLibCheck --noemit",
+		"lint": "eslint . && tsc --skipLibCheck --noemit",
 		"test": "npm run test:vitest && bun test --coverage",
 		"test:vitest": "vitest run --no-file-parallelism"
 	},

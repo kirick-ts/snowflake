@@ -189,7 +189,7 @@ var SnowflakeFactory = class {
 	increment_timestamp = 0;
 	increment_max;
 	options;
-	constructor({ bits: { server_id: bits_server_id = 7, worker_id: bits_worker_id = 5 } = {}, server_id = 0, worker_id = 0 } = {}) {
+	constructor({ bits: { server_id: bits_server_id = 7, worker_id: bits_worker_id = 5 } = {}, server_id, worker_id }) {
 		this.server_id = server_id;
 		this.worker_id = worker_id;
 		const server_id_mask = 2 ** bits_server_id - 1;
