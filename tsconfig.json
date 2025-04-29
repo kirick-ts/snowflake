@@ -10,9 +10,8 @@
 		"**/*.test.*"
 	],
 	"compilerOptions": {
-		"outDir": "dist/esm",
 		"declaration": true,
-		"declarationDir": "dist/esm",
+		"isolatedDeclarations": true,
 		"target": "esnext",
 		"module": "esnext",
 		"lib": [

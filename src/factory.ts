@@ -19,6 +19,14 @@ export type SnowflakeFactoryOptions = {
 	/** Number representing the Server ID and Worker ID combined. */
 	number_server_id_worker_id: number,
 };
+type SnowflakeFactoryConstructorOptions = {
+	bits?: {
+		server_id?: number,
+		worker_id?: number,
+	},
+	server_id: number,
+	worker_id: number,
+};
 
 export class SnowflakeFactory {
 	readonly server_id: number;
@@ -33,9 +41,9 @@ export class SnowflakeFactory {
 			server_id: bits_server_id = 7,
 			worker_id: bits_worker_id = 5,
 		} = {},
-		server_id = 0,
-		worker_id = 0,
-	} = {}) {
+		server_id,
+		worker_id,
+	}: SnowflakeFactoryConstructorOptions) {
 		this.server_id = server_id;
 		this.worker_id = worker_id;
 

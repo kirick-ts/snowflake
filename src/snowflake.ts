@@ -58,7 +58,7 @@ export class Snowflake {
 	static fromValues(
 		data: SnowflakeData,
 		factory_options: SnowflakeFactoryOptions,
-	) {
+	): Snowflake {
 		const timestamp_epoch = data.timestamp - EPOCH;
 
 		const array_buffer = new ArrayBuffer(8);
@@ -95,7 +95,7 @@ export class Snowflake {
 		snowflake: ArrayBuffer | Buffer | bigint | string,
 		encoding: 'decimal' | 'hex' | 'base62' | undefined,
 		factory_options: SnowflakeFactoryOptions,
-	) {
+	): Snowflake {
 		let array_buffer: ArrayBuffer | null = null;
 		let data_view: DataView | null = null;
 
