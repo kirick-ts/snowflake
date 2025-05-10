@@ -28,7 +28,7 @@ jobs:
         id: set-tag
         run: |
           VERSION=$(node -p "require('./package.json').version")
-          
+
           if [[ $VERSION == *"-beta."* ]]; then
             NPM_TAG="beta"
           elif [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
@@ -36,7 +36,7 @@ jobs:
           else
             NPM_TAG="dev"
           fi
-          
+
           echo "Detected version: $VERSION"
           echo "NPM tag: $NPM_TAG"
           echo "npm_tag=$NPM_TAG" >> $GITHUB_OUTPUT
@@ -51,12 +51,22 @@ jobs:
           else
             BRANCH=${{ github.base_ref }}
           fi
-          
+
           NPM_TAG=${{ steps.set-tag.outputs.npm_tag }}
 
           if [[ $BRANCH == "main" && $NPM_TAG != "latest" ]] || \
              [[ $BRANCH == "beta" && $NPM_TAG != "beta" ]]; then
-            echo "Error: Version tag $NPM_TAG doesn't match branch $BRANCH"
+            echo "Error: Tag $NPM_TAG doesn't match branch $BRANCH"
+            exit 1
+          fi
+
+      - name: Check if version exists in NPM
+        if: (github.event_name == 'pull_request' && (github.base_ref == 'main' || github.base_ref == 'beta'))
+        run: |
+          PACKAGE_NAME=$(node -p "require('./package.json').name")
+          VERSION=$(node -p "require('./package.json').version")
+          if npm view $PACKAGE_NAME@$VERSION version > /dev/null 2>&1; then
+            echo "Error: Version $VERSION already exists"
             exit 1
           fi
 
