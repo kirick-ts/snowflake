@@ -127,20 +127,20 @@ export class SnowflakeFactory {
 	}
 
 	/**
-	 * Parses Snowflake from ArrayBuffer, Buffer, bigint or string.
+	 * Parses Snowflake from ArrayBuffer, Uint8Array, Buffer, bigint or string.
 	 * @param snowflake - Snowflake to parse.
 	 * @returns Parsed Snowflake instance.
 	 */
-	parse(snowflake: ArrayBuffer | Buffer | bigint): Snowflake;
+	parse(snowflake: ArrayBuffer | Uint8Array | bigint): Snowflake;
 	/**
-	 * Parses Snowflake from ArrayBuffer, Buffer, bigint or string.
+	 * Parses Snowflake from ArrayBuffer, Uint8Array, Buffer, bigint or string.
 	 * @param snowflake - Snowflake to parse.
 	 * @param encoding - Encoding of snowflake string.
 	 * @returns Parsed Snowflake instance.
 	 */
 	parse(snowflake: string, encoding: 'decimal' | 'hex' | 'base62'): Snowflake;
 	parse(
-		snowflake: ArrayBuffer | Buffer | bigint | string,
+		snowflake: ArrayBuffer | Uint8Array | bigint | string,
 		encoding?: 'decimal' | 'hex' | 'base62',
 	) {
 		return Snowflake.fromSnowflake(snowflake, encoding, this.options);

@@ -40,6 +40,39 @@ describe('types', () => {
 		testSnowflake(snowflakeFactory.parse(array_buffer), timestamp);
 	});
 
+	test('Uint8Array', () => {
+		const bytes = snowflake.toUint8Array();
+
+		expect(bytes).toBeInstanceOf(Uint8Array);
+		expect(bytes.byteLength).toBe(8);
+
+		const parsed = snowflakeFactory.parse(bytes);
+
+		testSnowflake(parsed, timestamp);
+		expect(parsed.toBigInt()).toBe(snowflake.toBigInt());
+	});
+
+	for (const type of ['Uint8Array', 'Buffer']) {
+		test(`${type} subarray`, () => {
+			const bytes =
+				type === 'Buffer'
+					? Buffer.alloc(16, 255)
+					: new Uint8Array(16).fill(255);
+			const view = bytes.subarray(4, 12);
+			view.set(snowflake.toUint8Array());
+
+			const parsed = snowflakeFactory.parse(view);
+
+			testSnowflake(parsed, timestamp);
+			expect(parsed.toUint8Array()).toEqual(snowflake.toUint8Array());
+
+			view.fill(0);
+
+			expect(parsed.toBigInt()).toBe(snowflake.toBigInt());
+			expect(parsed.toUint8Array()).toEqual(snowflake.toUint8Array());
+		});
+	}
+
 	test('Buffer', () => {
 		const buffer = snowflake.toBuffer();
 

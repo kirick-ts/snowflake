@@ -41,7 +41,7 @@ export declare class Snowflake {
    * @param factory_options -
    * @returns New Snowflake instance.
    */
-  static fromSnowflake(snowflake: ArrayBuffer | Buffer | bigint | string, encoding: "decimal" | "hex" | "base62" | undefined, factory_options: SnowflakeFactoryOptions): Snowflake;
+  static fromSnowflake(snowflake: ArrayBuffer | Uint8Array | bigint | string, encoding: "decimal" | "hex" | "base62" | undefined, factory_options: SnowflakeFactoryOptions): Snowflake;
   /**
    * Snowflake as ArrayBuffer.
    * @returns -
@@ -121,13 +121,13 @@ export declare class SnowflakeFactory {
    */
   createSafe(): Promise<Snowflake>;
   /**
-   * Parses Snowflake from ArrayBuffer, Buffer, bigint or string.
+   * Parses Snowflake from ArrayBuffer, Uint8Array, Buffer, bigint or string.
    * @param snowflake - Snowflake to parse.
    * @returns Parsed Snowflake instance.
    */
-  parse(snowflake: ArrayBuffer | Buffer | bigint): Snowflake;
+  parse(snowflake: ArrayBuffer | Uint8Array | bigint): Snowflake;
   /**
-   * Parses Snowflake from ArrayBuffer, Buffer, bigint or string.
+   * Parses Snowflake from ArrayBuffer, Uint8Array, Buffer, bigint or string.
    * @param snowflake - Snowflake to parse.
    * @param encoding - Encoding of snowflake string.
    * @returns Parsed Snowflake instance.

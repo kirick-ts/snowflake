@@ -85,7 +85,7 @@ export class Snowflake {
 	 * @returns New Snowflake instance.
 	 */
 	static fromSnowflake(
-		snowflake: ArrayBuffer | Buffer | bigint | string,
+		snowflake: ArrayBuffer | Uint8Array | bigint | string,
 		encoding: 'decimal' | 'hex' | 'base62' | undefined,
 		factory_options: SnowflakeFactoryOptions,
 	): Snowflake {
@@ -94,11 +94,8 @@ export class Snowflake {
 
 		if (snowflake instanceof ArrayBuffer) {
 			array_buffer = snowflake;
-		} else if (Buffer.isBuffer(snowflake)) {
-			array_buffer = snowflake.buffer.slice(
-				snowflake.byteOffset,
-				snowflake.byteOffset + snowflake.byteLength,
-			) as ArrayBuffer;
+		} else if (snowflake instanceof Uint8Array) {
+			array_buffer = new Uint8Array(snowflake).buffer;
 		} else if (typeof snowflake === 'bigint') {
 			array_buffer = new ArrayBuffer(8);
 

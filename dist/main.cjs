@@ -191,7 +191,7 @@ var Snowflake = class Snowflake {
 		let array_buffer = null;
 		let data_view = null;
 		if (snowflake instanceof ArrayBuffer) array_buffer = snowflake;
-		else if (Buffer.isBuffer(snowflake)) array_buffer = snowflake.buffer.slice(snowflake.byteOffset, snowflake.byteOffset + snowflake.byteLength);
+		else if (snowflake instanceof Uint8Array) array_buffer = new Uint8Array(snowflake).buffer;
 		else if (typeof snowflake === "bigint") {
 			array_buffer = /* @__PURE__ */ new ArrayBuffer(8);
 			data_view = new DataView(array_buffer);

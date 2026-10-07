@@ -9,7 +9,7 @@ Generator of unique & sortable IDs based on the [Snowflake IDs](https://en.wikip
 
 - 🔄 **Distributed**: Generate IDs across multiple servers without coordination
 - 📊 **Sortable**: IDs are time-ordered for easy sorting with default JS operators and indexing
-- 🔄 **Multiple formats**: Use Snowflakes as ArrayBuffer, Buffer, BigInt, as well as decimal, hexadecimal, and base62 strings
+- 🔄 **Multiple formats**: Use Snowflakes as ArrayBuffer, Uint8Array, Buffer, BigInt, as well as decimal, hexadecimal, and base62 strings
 - 🔍 **TypeScript**: Fully typed API for improved developer experience
 - 🛠️ **Customizable**: Configure server/worker bits to suit your infrastructure
 
