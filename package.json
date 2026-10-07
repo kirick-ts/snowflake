@@ -1,16 +1,18 @@
 {
 	"name": "@kirick/snowflake",
-	"version": "0.3.1",
+	"version": "0.3.2-dev",
 	"description": "Generator of unique & sortable IDs.",
 	"publishConfig": {
 		"access": "public"
 	},
 	"type": "module",
-	"main": "dist/main.js",
-	"types": "dist/main.d.ts",
 	"exports": {
 		".": {
-			"import": "./dist/main.js",
+			"types": {
+				"import": "./dist/main.d.mts",
+				"require": "./dist/main.d.cts"
+			},
+			"import": "./dist/main.mjs",
 			"require": "./dist/main.cjs"
 		}
 	},
@@ -21,20 +23,28 @@
 		"base-x": "5.0.1"
 	},
 	"devDependencies": {
-		"@kirick/eslint-config": "0.1.30",
-		"@types/node": "^22.14.1",
-		"eslint": "9.10.0",
-		"publint": "^0.3.12",
-		"tsdown": "^0.10.0",
-		"typescript": "5.8.3",
-		"unplugin-unused": "^0.4.4",
-		"vitest": "3.1.2"
+		"@biomejs/biome": "2.5.4",
+		"@kirick/lint": "0.4.1",
+		"@types/node": "22.14.1",
+		"eslint": "10.7.0",
+		"oxlint": "1.74.0",
+		"publint": "0.3.25",
+		"tsdown": "0.23.0",
+		"typescript": "6.0.3",
+		"unplugin-unused": "0.6.0",
+		"vitest": "5.0.3"
+	},
+	"tsdown": {
+		"deps": {
+			"alwaysBundle": [
+				"base-x"
+			]
+		}
 	},
 	"scripts": {
-		"build": "tsdown src/main.ts --publint --unused --dts --format esm --format cjs && rm dist/main.d.cts",
-		"check": "bun run lint && bun run build && bun run test",
-		"lint": "eslint . && tsc --skipLibCheck --noemit",
-		"test": "npm run test:vitest && bun test --coverage",
+		"build": "tsdown src/main.ts --format esm --format cjs --dts --publint --unused",
+		"check": "bun lint && bun run build && bun run test",
+		"test": "bun test && npm run test:vitest",
 		"test:vitest": "vitest run --no-file-parallelism"
 	},
 	"repository": {

@@ -1,29 +1,4 @@
-"use strict";
-//#region rolldown:runtime
-var __create = Object.create;
-var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
-var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
-var __copyProps = (to, from, except, desc) => {
-	if (from && typeof from === "object" || typeof from === "function") for (var keys = __getOwnPropNames(from), i = 0, n = keys.length, key; i < n; i++) {
-		key = keys[i];
-		if (!__hasOwnProp.call(to, key) && key !== except) __defProp(to, key, {
-			get: ((k) => from[k]).bind(null, key),
-			enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable
-		});
-	}
-	return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", {
-	value: mod,
-	enumerable: true
-}) : target, mod));
-
-//#endregion
-const base_x = __toESM(require("base-x"));
-
+Object.defineProperty(exports, Symbol.toStringTag, { value: "Module" });
 //#region src/errors.ts
 var SnowflakeError = class extends Error {};
 var SnowflakeIncrementOverflowError = class extends SnowflakeError {
@@ -31,7 +6,6 @@ var SnowflakeIncrementOverflowError = class extends SnowflakeError {
 		super("Cannot create snowflake due to increment overflow.");
 	}
 };
-
 //#endregion
 //#region src/utils/array-buffer-hex.ts
 /**
@@ -57,10 +31,103 @@ function hexToArrayBuffer(hex) {
 	for (let index_hex = 0, index_array = 0; index_hex < hex.length; index_hex += 2, index_array++) uint8_array[index_array] = Number.parseInt(hex.slice(index_hex, index_hex + 2), 16);
 	return uint8_array.buffer;
 }
-
+//#endregion
+//#region node_modules/base-x/src/esm/index.js
+function base(ALPHABET) {
+	if (ALPHABET.length >= 255) throw new TypeError("Alphabet too long");
+	const BASE_MAP = /* @__PURE__ */ new Uint8Array(256);
+	for (let j = 0; j < BASE_MAP.length; j++) BASE_MAP[j] = 255;
+	for (let i = 0; i < ALPHABET.length; i++) {
+		const x = ALPHABET.charAt(i);
+		const xc = x.charCodeAt(0);
+		if (BASE_MAP[xc] !== 255) throw new TypeError(x + " is ambiguous");
+		BASE_MAP[xc] = i;
+	}
+	const BASE = ALPHABET.length;
+	const LEADER = ALPHABET.charAt(0);
+	const FACTOR = Math.log(BASE) / Math.log(256);
+	const iFACTOR = Math.log(256) / Math.log(BASE);
+	function encode(source) {
+		if (source instanceof Uint8Array) {} else if (ArrayBuffer.isView(source)) source = new Uint8Array(source.buffer, source.byteOffset, source.byteLength);
+		else if (Array.isArray(source)) source = Uint8Array.from(source);
+		if (!(source instanceof Uint8Array)) throw new TypeError("Expected Uint8Array");
+		if (source.length === 0) return "";
+		let zeroes = 0;
+		let length = 0;
+		let pbegin = 0;
+		const pend = source.length;
+		while (pbegin !== pend && source[pbegin] === 0) {
+			pbegin++;
+			zeroes++;
+		}
+		const size = (pend - pbegin) * iFACTOR + 1 >>> 0;
+		const b58 = new Uint8Array(size);
+		while (pbegin !== pend) {
+			let carry = source[pbegin];
+			let i = 0;
+			for (let it1 = size - 1; (carry !== 0 || i < length) && it1 !== -1; it1--, i++) {
+				carry += 256 * b58[it1] >>> 0;
+				b58[it1] = carry % BASE >>> 0;
+				carry = carry / BASE >>> 0;
+			}
+			if (carry !== 0) throw new Error("Non-zero carry");
+			length = i;
+			pbegin++;
+		}
+		let it2 = size - length;
+		while (it2 !== size && b58[it2] === 0) it2++;
+		let str = LEADER.repeat(zeroes);
+		for (; it2 < size; ++it2) str += ALPHABET.charAt(b58[it2]);
+		return str;
+	}
+	function decodeUnsafe(source) {
+		if (typeof source !== "string") throw new TypeError("Expected String");
+		if (source.length === 0) return /* @__PURE__ */ new Uint8Array();
+		let psz = 0;
+		let zeroes = 0;
+		let length = 0;
+		while (source[psz] === LEADER) {
+			zeroes++;
+			psz++;
+		}
+		const size = (source.length - psz) * FACTOR + 1 >>> 0;
+		const b256 = new Uint8Array(size);
+		while (psz < source.length) {
+			const charCode = source.charCodeAt(psz);
+			if (charCode > 255) return;
+			let carry = BASE_MAP[charCode];
+			if (carry === 255) return;
+			let i = 0;
+			for (let it3 = size - 1; (carry !== 0 || i < length) && it3 !== -1; it3--, i++) {
+				carry += BASE * b256[it3] >>> 0;
+				b256[it3] = carry % 256 >>> 0;
+				carry = carry / 256 >>> 0;
+			}
+			if (carry !== 0) throw new Error("Non-zero carry");
+			length = i;
+			psz++;
+		}
+		let it4 = size - length;
+		while (it4 !== size && b256[it4] === 0) it4++;
+		const vch = new Uint8Array(zeroes + (size - it4));
+		let j = zeroes;
+		while (it4 !== size) vch[j++] = b256[it4++];
+		return vch;
+	}
+	function decode(string) {
+		const buffer = decodeUnsafe(string);
+		if (buffer) return buffer;
+		throw new Error("Non-base" + BASE + " character");
+	}
+	return {
+		encode,
+		decodeUnsafe,
+		decode
+	};
+}
 //#endregion
 //#region src/utils.ts
-const base62 = (0, base_x.default)("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
+const base62 = base("0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz");
 /**
 * Wrapper for setTimeout.
 * @param delay - The delay in milliseconds.
@@ -71,11 +138,10 @@ function asyncTimeout(delay = 0) {
 		setTimeout(resolve, delay);
 	});
 }
-
 //#endregion
 //#region src/snowflake.ts
 const EPOCH = 16409952e5;
-const NUMBER_TS_RIGHT = 2 ** 10;
+const NUMBER_TS_RIGHT = 1024;
 var Snowflake = class Snowflake {
 	/** Timestamp in milliseconds when Snowflake was created. */
 	timestamp;
@@ -85,16 +151,16 @@ var Snowflake = class Snowflake {
 	worker_id;
 	/** Increment of Snowflake. */
 	increment;
-	array_buffer;
-	data_view;
+	#array_buffer;
+	#data_view;
 	/**
 	* @param array_buffer -
 	* @param data_view -
 	* @param data -
 	*/
 	constructor(array_buffer, data_view, data) {
-		this.array_buffer = array_buffer;
-		this.data_view = data_view;
+		this.#array_buffer = array_buffer;
+		this.#data_view = data_view;
 		this.timestamp = data.timestamp;
 		this.server_id = data.server_id;
 		this.worker_id = data.worker_id;
@@ -108,7 +174,7 @@ var Snowflake = class Snowflake {
 	*/
 	static fromValues(data, factory_options) {
 		const timestamp_epoch = data.timestamp - EPOCH;
-		const array_buffer = new ArrayBuffer(8);
+		const array_buffer = /* @__PURE__ */ new ArrayBuffer(8);
 		const data_view = new DataView(array_buffer);
 		data_view.setUint32(0, Math.floor(timestamp_epoch / NUMBER_TS_RIGHT));
 		data_view.setUint32(4, timestamp_epoch % NUMBER_TS_RIGHT << 22 | data.increment << factory_options.increment_bit_offset | factory_options.number_server_id_worker_id);
@@ -127,21 +193,19 @@ var Snowflake = class Snowflake {
 		if (snowflake instanceof ArrayBuffer) array_buffer = snowflake;
 		else if (Buffer.isBuffer(snowflake)) array_buffer = snowflake.buffer.slice(snowflake.byteOffset, snowflake.byteOffset + snowflake.byteLength);
 		else if (typeof snowflake === "bigint") {
-			array_buffer = new ArrayBuffer(8);
+			array_buffer = /* @__PURE__ */ new ArrayBuffer(8);
 			data_view = new DataView(array_buffer);
 			data_view.setBigUint64(0, snowflake);
 		} else if (typeof snowflake === "string") switch (encoding) {
 			case "decimal":
-				array_buffer = new ArrayBuffer(8);
+				array_buffer = /* @__PURE__ */ new ArrayBuffer(8);
 				data_view = new DataView(array_buffer);
 				data_view.setBigUint64(0, BigInt(snowflake));
 				break;
 			case "hex":
 				array_buffer = hexToArrayBuffer(snowflake);
 				break;
-			case "base62":
-				array_buffer = base62.decode(snowflake).buffer;
-				break;
+			case "base62": array_buffer = base62.decode(snowflake).buffer;
 		}
 		if (array_buffer === null) throw new SnowflakeError(`Unknown encoding: ${encoding}`);
 		if (data_view === null) data_view = new DataView(array_buffer);
@@ -158,28 +222,28 @@ var Snowflake = class Snowflake {
 	* @returns -
 	*/
 	toArrayBuffer() {
-		return this.array_buffer;
+		return this.#array_buffer;
 	}
 	/**
 	* Snowflake as Uint8Array.
 	* @returns -
 	*/
 	toUint8Array() {
-		return new Uint8Array(this.array_buffer);
+		return new Uint8Array(this.#array_buffer);
 	}
 	/**
 	* Snowflake as Node.JS Buffer.
 	* @returns -
 	*/
 	toBuffer() {
-		return Buffer.from(this.array_buffer);
+		return Buffer.from(this.#array_buffer);
 	}
 	/**
 	* Snowflake as BigInt.
 	* @returns -
 	*/
 	toBigInt() {
-		return this.data_view.getBigUint64(0);
+		return this.#data_view.getBigUint64(0);
 	}
 	/**
 	* Snowflake as decimal string.
@@ -193,7 +257,7 @@ var Snowflake = class Snowflake {
 	* @returns -
 	*/
 	toHex() {
-		return arrayBufferToHex(this.array_buffer);
+		return arrayBufferToHex(this.#array_buffer);
 	}
 	/**
 	* Snowflake as base62 string.
@@ -203,7 +267,6 @@ var Snowflake = class Snowflake {
 		return base62.encode(this.toUint8Array());
 	}
 };
-
 //#endregion
 //#region src/factory.ts
 var SnowflakeFactory = class {
@@ -217,10 +280,10 @@ var SnowflakeFactory = class {
 		this.server_id = server_id;
 		this.worker_id = worker_id;
 		const server_id_mask = 2 ** bits_server_id - 1;
+		if (server_id < 0 || server_id > server_id_mask || !Number.isSafeInteger(server_id)) throw new SnowflakeError(`Invalid server_id: ${server_id} (possible values: from 0 to ${server_id_mask} inclusive)`);
 		const worker_id_bits = bits_worker_id;
 		const worker_id_mask = 2 ** bits_worker_id - 1;
-		if (server_id < 0 || server_id > server_id_mask || !Number.isInteger(server_id)) throw new SnowflakeError(`Invalid server_id: ${server_id} (possible values: from 0 to ${server_id_mask} inclusive)`);
-		if (worker_id < 0 || worker_id > worker_id_mask || !Number.isInteger(worker_id)) throw new SnowflakeError(`Invalid worker_id: ${worker_id} (possible values: from 0 to ${worker_id_mask} inclusive)`);
+		if (worker_id < 0 || worker_id > worker_id_mask || !Number.isSafeInteger(worker_id)) throw new SnowflakeError(`Invalid worker_id: ${worker_id} (possible values: from 0 to ${worker_id_mask} inclusive)`);
 		const increment_bit_offset = bits_server_id + bits_worker_id;
 		this.increment_max = 2 ** (22 - increment_bit_offset) - 1;
 		this.options = {
@@ -266,9 +329,8 @@ var SnowflakeFactory = class {
 		return Snowflake.fromSnowflake(snowflake, encoding, this.options);
 	}
 };
-
 //#endregion
-exports.Snowflake = Snowflake
-exports.SnowflakeError = SnowflakeError
-exports.SnowflakeFactory = SnowflakeFactory
-exports.SnowflakeIncrementOverflowError = SnowflakeIncrementOverflowError
+exports.Snowflake = Snowflake;
+exports.SnowflakeError = SnowflakeError;
+exports.SnowflakeFactory = SnowflakeFactory;
+exports.SnowflakeIncrementOverflowError = SnowflakeIncrementOverflowError;

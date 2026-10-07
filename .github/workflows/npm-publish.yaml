@@ -13,8 +13,8 @@ on:
       - 'dev-*'
 
 env:
-  BUN_VERSION: 1.2.2
-  NODE_VERSION: 22
+  BUN_VERSION: 1.4.2
+  NODE_VERSION: 24.14.0
 
 jobs:
   version:
@@ -22,7 +22,7 @@ jobs:
     outputs:
       npm_tag: ${{ steps.set-tag.outputs.npm_tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Determine NPM tag
         id: set-tag
@@ -74,7 +74,12 @@ jobs:
     needs: [version]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
 
       - name: Set up Bun
         uses: oven-sh/setup-bun@v2
@@ -100,10 +105,10 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           registry-url: https://registry.npmjs.org/
@@ -124,7 +129,7 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - uses: kirick13/npm-publish-notify-action@v1.1
+      - uses: kirick13/npm-publish-notify-action@v1.2
         with:
           telegram-bot-token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           telegram-chat-id: ${{ secrets.TELEGRAM_CHAT_ID }}
