@@ -1,4 +1,4 @@
-/* eslint-disable no-bitwise */
+/* oxlint-disable no-bitwise */
 
 import { SnowflakeError } from './errors.js';
 import type { SnowflakeFactoryOptions } from './factory.js';
@@ -9,10 +9,10 @@ import {
 import { base62 } from './utils.js';
 
 type SnowflakeData = {
-	timestamp: number,
-	server_id: number,
-	worker_id: number,
-	increment: number,
+	timestamp: number;
+	server_id: number;
+	worker_id: number;
+	increment: number;
 };
 
 const EPOCH = 1_640_995_200_000; // Jan 1, 2022
@@ -27,8 +27,8 @@ export class Snowflake {
 	readonly worker_id: SnowflakeData['worker_id'];
 	/** Increment of Snowflake. */
 	readonly increment: SnowflakeData['increment'];
-	private array_buffer: ArrayBuffer;
-	private data_view: DataView;
+	#array_buffer: ArrayBuffer;
+	#data_view: DataView;
 
 	/**
 	 * @param array_buffer -
@@ -40,8 +40,8 @@ export class Snowflake {
 		data_view: DataView,
 		data: SnowflakeData,
 	) {
-		this.array_buffer = array_buffer;
-		this.data_view = data_view;
+		this.#array_buffer = array_buffer;
+		this.#data_view = data_view;
 
 		this.timestamp = data.timestamp;
 		this.server_id = data.server_id;
@@ -65,10 +65,7 @@ export class Snowflake {
 		const data_view = new DataView(array_buffer);
 
 		// timestamp
-		data_view.setUint32(
-			0,
-			Math.floor(timestamp_epoch / NUMBER_TS_RIGHT),
-		);
+		data_view.setUint32(0, Math.floor(timestamp_epoch / NUMBER_TS_RIGHT));
 
 		data_view.setUint32(
 			4,
@@ -77,11 +74,7 @@ export class Snowflake {
 				| factory_options.number_server_id_worker_id,
 		);
 
-		return new Snowflake(
-			array_buffer,
-			data_view,
-			data,
-		);
+		return new Snowflake(array_buffer, data_view, data);
 	}
 
 	/**
@@ -92,7 +85,7 @@ export class Snowflake {
 	 * @returns New Snowflake instance.
 	 */
 	static fromSnowflake(
-		snowflake: ArrayBuffer | Buffer | bigint | string,
+		snowflake: ArrayBuffer | Uint8Array | bigint | string,
 		encoding: 'decimal' | 'hex' | 'base62' | undefined,
 		factory_options: SnowflakeFactoryOptions,
 	): Snowflake {
@@ -101,32 +94,20 @@ export class Snowflake {
 
 		if (snowflake instanceof ArrayBuffer) {
 			array_buffer = snowflake;
-		}
-		else if (Buffer.isBuffer(snowflake)) {
-			array_buffer = snowflake.buffer.slice(
-				snowflake.byteOffset,
-				snowflake.byteOffset + snowflake.byteLength,
-			) as ArrayBuffer;
-		}
-		else if (typeof snowflake === 'bigint') {
+		} else if (snowflake instanceof Uint8Array) {
+			array_buffer = new Uint8Array(snowflake).buffer;
+		} else if (typeof snowflake === 'bigint') {
 			array_buffer = new ArrayBuffer(8);
 
 			data_view = new DataView(array_buffer);
-			data_view.setBigUint64(
-				0,
-				snowflake,
-			);
-		}
-		else if (typeof snowflake === 'string') {
+			data_view.setBigUint64(0, snowflake);
+		} else if (typeof snowflake === 'string') {
 			switch (encoding) {
 				case 'decimal':
 					array_buffer = new ArrayBuffer(8);
 
 					data_view = new DataView(array_buffer);
-					data_view.setBigUint64(
-						0,
-						BigInt(snowflake),
-					);
+					data_view.setBigUint64(0, BigInt(snowflake));
 					break;
 
 				case 'hex':
@@ -151,16 +132,18 @@ export class Snowflake {
 
 		const number_right = data_view.getUint32(4);
 
-		return new Snowflake(
-			array_buffer,
-			data_view,
-			{
-				timestamp: (data_view.getUint32(0) * NUMBER_TS_RIGHT) + (number_right >>> 22) + EPOCH,
-				server_id: (number_right >>> factory_options.worker_id_bits) & factory_options.server_id_mask,
-				worker_id: number_right & factory_options.worker_id_mask,
-				increment: (number_right << 10 >>> 10 >>> factory_options.increment_bit_offset),
-			},
-		);
+		return new Snowflake(array_buffer, data_view, {
+			timestamp:
+				data_view.getUint32(0) * NUMBER_TS_RIGHT
+				+ (number_right >>> 22)
+				+ EPOCH,
+			server_id:
+				(number_right >>> factory_options.worker_id_bits)
+				& factory_options.server_id_mask,
+			worker_id: number_right & factory_options.worker_id_mask,
+			increment:
+				((number_right << 10) >>> 10) >>> factory_options.increment_bit_offset,
+		});
 	}
 
 	/**
@@ -168,7 +151,7 @@ export class Snowflake {
 	 * @returns -
 	 */
 	toArrayBuffer(): ArrayBuffer {
-		return this.array_buffer;
+		return this.#array_buffer;
 	}
 
 	/**
@@ -176,7 +159,7 @@ export class Snowflake {
 	 * @returns -
 	 */
 	toUint8Array(): Uint8Array {
-		return new Uint8Array(this.array_buffer);
+		return new Uint8Array(this.#array_buffer);
 	}
 
 	/**
@@ -184,7 +167,7 @@ export class Snowflake {
 	 * @returns -
 	 */
 	toBuffer(): Buffer {
-		return Buffer.from(this.array_buffer);
+		return Buffer.from(this.#array_buffer);
 	}
 
 	/**
@@ -192,7 +175,7 @@ export class Snowflake {
 	 * @returns -
 	 */
 	toBigInt(): bigint {
-		return this.data_view.getBigUint64(0);
+		return this.#data_view.getBigUint64(0);
 	}
 
 	/**
@@ -208,7 +191,7 @@ export class Snowflake {
 	 * @returns -
 	 */
 	toHex(): string {
-		return arrayBufferToHex(this.array_buffer);
+		return arrayBufferToHex(this.#array_buffer);
 	}
 
 	/**
@@ -216,8 +199,6 @@ export class Snowflake {
 	 * @returns -
 	 */
 	toBase62(): string {
-		return base62.encode(
-			this.toUint8Array(),
-		);
+		return base62.encode(this.toUint8Array());
 	}
 }

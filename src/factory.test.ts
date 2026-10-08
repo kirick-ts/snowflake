@@ -1,10 +1,6 @@
 /* eslint-disable jsdoc/require-jsdoc */
 
-import {
-	describe,
-	test,
-	expect,
-} from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { SnowflakeFactory } from './factory.js';
 import { Snowflake } from './snowflake.js';
 import { asyncTimeout } from './utils.js';
@@ -41,11 +37,41 @@ describe('types', () => {
 		expect(array_buffer).toBeInstanceOf(ArrayBuffer);
 		expect(array_buffer.byteLength).toBe(8);
 
-		testSnowflake(
-			snowflakeFactory.parse(array_buffer),
-			timestamp,
-		);
+		testSnowflake(snowflakeFactory.parse(array_buffer), timestamp);
 	});
+
+	test('Uint8Array', () => {
+		const bytes = snowflake.toUint8Array();
+
+		expect(bytes).toBeInstanceOf(Uint8Array);
+		expect(bytes.byteLength).toBe(8);
+
+		const parsed = snowflakeFactory.parse(bytes);
+
+		testSnowflake(parsed, timestamp);
+		expect(parsed.toBigInt()).toBe(snowflake.toBigInt());
+	});
+
+	for (const type of ['Uint8Array', 'Buffer']) {
+		test(`${type} subarray`, () => {
+			const bytes =
+				type === 'Buffer'
+					? Buffer.alloc(16, 255)
+					: new Uint8Array(16).fill(255);
+			const view = bytes.subarray(4, 12);
+			view.set(snowflake.toUint8Array());
+
+			const parsed = snowflakeFactory.parse(view);
+
+			testSnowflake(parsed, timestamp);
+			expect(parsed.toUint8Array()).toEqual(snowflake.toUint8Array());
+
+			view.fill(0);
+
+			expect(parsed.toBigInt()).toBe(snowflake.toBigInt());
+			expect(parsed.toUint8Array()).toEqual(snowflake.toUint8Array());
+		});
+	}
 
 	test('Buffer', () => {
 		const buffer = snowflake.toBuffer();
@@ -53,10 +79,7 @@ describe('types', () => {
 		expect(buffer).toBeInstanceOf(Buffer);
 		expect(buffer.byteLength).toBe(8);
 
-		testSnowflake(
-			snowflakeFactory.parse(buffer),
-			timestamp,
-		);
+		testSnowflake(snowflakeFactory.parse(buffer), timestamp);
 	});
 
 	test('bigint', () => {
@@ -66,83 +89,49 @@ describe('types', () => {
 		expect(result).toBeGreaterThan(0n);
 		expect(result).toBeLessThan(2n ** 64n);
 
-		testSnowflake(
-			snowflakeFactory.parse(result),
-			timestamp,
-		);
+		testSnowflake(snowflakeFactory.parse(result), timestamp);
 	});
 
 	test('decimal', () => {
 		const result = snowflake.toDecimal();
 
 		expect(typeof result).toBe('string');
-		expect(result).toMatch(/^\d+$/);
+		expect(result).toMatch(/^\d+$/u);
 
-		testSnowflake(
-			snowflakeFactory.parse(
-				result,
-				'decimal',
-			),
-			timestamp,
-		);
+		testSnowflake(snowflakeFactory.parse(result, 'decimal'), timestamp);
 	});
 
 	test('hex', () => {
 		const result = snowflake.toHex();
 
 		expect(typeof result).toBe('string');
-		expect(result).toMatch(/^[\da-f]+$/);
+		expect(result).toMatch(/^[\da-f]+$/u);
 		expect(result.length).toBe(16);
 
-		testSnowflake(
-			snowflakeFactory.parse(
-				result,
-				'hex',
-			),
-			timestamp,
-		);
+		testSnowflake(snowflakeFactory.parse(result, 'hex'), timestamp);
 	});
 
 	test('base62', () => {
 		const result = snowflake.toBase62();
 
 		expect(typeof result).toBe('string');
-		expect(result).toMatch(/^[\dA-Za-z]+$/);
+		expect(result).toMatch(/^[\dA-Za-z]+$/u);
 		expect(result.length).toBe(10);
 
-		testSnowflake(
-			snowflakeFactory.parse(
-				result,
-				'base62',
-			),
-			timestamp,
-		);
+		testSnowflake(snowflakeFactory.parse(result, 'base62'), timestamp);
 	});
 });
 
-const snowflakes = [
-	snowflakeFactory.create(),
-	snowflakeFactory.create(),
-];
+const snowflakes = [snowflakeFactory.create(), snowflakeFactory.create()];
 while (snowflakes.length < 10) {
-	// eslint-disable-next-line no-await-in-loop
-	await asyncTimeout(
-		snowflakes.length,
-	);
+	// oxlint-disable-next-line no-await-in-loop
+	await asyncTimeout(snowflakes.length);
 
-	snowflakes.push(
-		snowflakeFactory.create(),
-		snowflakeFactory.create(),
-	);
+	snowflakes.push(snowflakeFactory.create(), snowflakeFactory.create());
 }
 
 describe('compare', () => {
-	for (const method of [
-		'toBigInt',
-		'toDecimal',
-		'toHex',
-		'toBase62',
-	]) {
+	for (const method of ['toBigInt', 'toDecimal', 'toHex', 'toBase62']) {
 		test(method, () => {
 			for (let index = 1; index < snowflakes.length; index++) {
 				const snowflake1 = snowflakes[index - 1];

@@ -1,10 +1,11 @@
-
 /**
  * Convert an ArrayBuffer to a hex string.
  * @param buffer - ArrayBuffer to convert.
  * @returns Hex string.
  */
-export function arrayBufferToHex(buffer: ArrayBuffer | SharedArrayBuffer): string {
+export function arrayBufferToHex(
+	buffer: ArrayBuffer | SharedArrayBuffer,
+): string {
 	let result = '';
 
 	for (const value of new Uint8Array(buffer)) {
@@ -32,10 +33,7 @@ export function hexToArrayBuffer(hex: string): ArrayBuffer {
 		index_hex += 2, index_array++
 	) {
 		uint8_array[index_array] = Number.parseInt(
-			hex.slice(
-				index_hex,
-				index_hex + 2,
-			),
+			hex.slice(index_hex, index_hex + 2),
 			16,
 		);
 	}
